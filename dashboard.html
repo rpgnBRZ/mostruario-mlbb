@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Painel do Organizador - MLBB</title>
+    <style>
+        body { font-family: sans-serif; background: #222; color: white; padding: 20px; text-align: center; }
+        .btn { 
+            padding: 15px 25px; margin: 10px; font-size: 16px; cursor: pointer; 
+            border: none; border-radius: 5px; transition: 0.3s;
+        }
+        .btn-show { background: #27ae60; color: white; }
+        .btn-hide { background: #c0392b; color: white; }
+    </style>
+</head>
+<body>
+    <h1>Controle do Showcase</h1>
+    
+    <div class="modos">
+        <button class="btn btn-show" onclick="enviarModo('Modo Espelho', 'Todos os jogadores usam o mesmo herói!')">Ativar Espelho</button>
+        <button class="btn btn-show" onclick="enviarModo('Modo Sobrevivência', 'Apenas um time sairá vivo.')">Ativar Sobrevivência</button>
+    </div>
+
+    <div class="controles">
+        <button class="btn btn-hide" onclick="esconderCarta()">Esconder Carta no OBS</button>
+    </div>
+
+    <script type="module">
+        import { db, ref, set } from './firebase-config.js';
+
+        window.enviarModo = (nome, desc) => {
+            set(ref(db, 'showcase'), {
+                modo_atual: nome,
+                descricao: desc,
+                status_exibicao: 'visivel'
+            });
+        };
+
+        window.esconderCarta = () => {
+            set(ref(db, 'showcase'), {
+                status_exibicao: 'oculto'
+            });
+        };
+    </script>
+</body>
+</html>

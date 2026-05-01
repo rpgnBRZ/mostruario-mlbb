@@ -117,15 +117,28 @@
         const nomeTxt = document.getElementById('modo-nome');
         const descTxt = document.getElementById('modo-desc');
 
-        const showcaseRef = ref(db, 'showcase');
+const showcaseRef = ref(db, 'showcase');
         onValue(showcaseRef, (snapshot) => {
             const data = snapshot.val();
             if (data && data.status_exibicao === 'visivel') {
                 nomeTxt.innerText = data.modo_atual;
                 descTxt.innerText = data.descricao;
-                container.classList.add('visible');
+                
+                // --- PARTE NOVA: MOSTRAR A IMAGEM ---
+                if (data.imagem_url) {
+                    const cardElement = document.querySelector('.card');
+                    // Define a imagem como fundo e mantém um efeito escuro por trás do texto para leitura
+                    cardElement.style.backgroundImage = `linear-gradient(135deg, rgba(15, 12, 41, 0.7), rgba(48, 43, 99, 0.7)), url('${data.imagem_url}')`;
+                    cardElement.style.backgroundSize = 'cover';
+                    cardElement.style.backgroundPosition = 'center';
+                }
+                // ------------------------------------
+
+                container.style.opacity = '1';
+                container.style.transform = 'scale(1)';
             } else {
-                container.classList.remove('visible');
+                container.style.opacity = '0';
+                container.style.transform = 'scale(0.8)';
             }
         });
     </script>

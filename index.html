@@ -2,143 +2,65 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>MLBB Showcase - Overlay</title>
+    <title>MLBB Showcase - Overlay Simples</title>
     <style>
         /* Fundo transparente para o OBS */
         body {
             margin: 0;
-            overflow: hidden;
+            padding: 0;
             background-color: transparent; 
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-        }
-
-        /* Container da animação */
-        #card-container {
-            perspective: 1000px;
-            opacity: 0;
-            transform: scale(0.8);
-            transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
-        }
-
-        /* Estilo da Carta */
-        .card {
-            width: 350px;
-            height: 500px;
-            /* Degradê estilo épico/mítico */
-            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
-            border: 5px solid #d4af37; /* Borda Dourada */
-            border-radius: 15px;
-            box-shadow: 0 0 50px rgba(212, 175, 55, 0.4), inset 0 0 20px rgba(0,0,0,0.5);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: space-between;
-            color: white;
-            text-align: center;
-            padding: 40px 20px;
-            position: relative;
             overflow: hidden;
-            transform: rotateY(-90deg);
-            transition: transform 0.8s;
         }
 
-        /* Efeito de brilho passando pela carta */
-        .card::after {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
-            transform: rotate(45deg);
-            animation: shine 3s infinite;
+        /* Container sem efeitos */
+        #image-container {
+            display: none; /* Escondido por padrão */
         }
 
-        @keyframes shine {
-            0% { left: -100%; }
-            100% { left: 100%; }
+        /* Quando visível, apenas mostra o bloco */
+        #image-container.visible {
+            display: block;
         }
 
-        /* Quando a carta fica visível */
-        #card-container.visible {
-            opacity: 1;
-            transform: scale(1);
-        }
-        #card-container.visible .card {
-            transform: rotateY(0deg);
-        }
-
-        /* Textos */
-        h2 {
-            font-size: 2.5em;
-            color: #f1c40f;
-            text-transform: uppercase;
-            text-shadow: 2px 4px 0px #000, 0 0 10px rgba(241, 196, 15, 0.5);
-            margin: 0;
-        }
-
-        .divider {
-            width: 80%;
-            height: 2px;
-            background: #d4af37;
-            margin: 20px 0;
-        }
-
-        p {
-            font-size: 1.3em;
-            line-height: 1.4;
-            text-shadow: 1px 2px 4px #000;
-            background: rgba(0,0,0,0.3);
-            padding: 15px;
-            border-radius: 8px;
+        /* A imagem ocupa o máximo da tela sem distorcer */
+        img {
+            max-width: 100vw;
+            max-height: 100vh;
+            display: block;
         }
     </style>
 </head>
 <body>
 
-    <div id="card-container">
-        <div class="card">
-            <h2 id="modo-nome">MODO CARREGANDO</h2>
-            <div class="divider"></div>
-            <p id="modo-desc">Aguardando sinal do campo de batalha...</p>
-            <div style="font-size: 0.8em; color: #aaa;">MLBB SHOWCASE</div>
-        </div>
+    <div id="image-container">
+        <img id="display-imagem" src="" alt="Modo Atual">
     </div>
 
     <script type="module">
         import { db, ref, onValue } from './firebase-config.js';
 
-        const container = document.getElementById('card-container');
-        const nomeTxt = document.getElementById('modo-nome');
-        const descTxt = document.getElementById('modo-desc');
+        const container = document.getElementById('image-container');
+        const imgElement = document.getElementById('display-imagem');
 
-const showcaseRef = ref(db, 'showcase');
+        const showcaseRef = ref(db, 'showcase');
+        
         onValue(showcaseRef, (snapshot) => {
             const data = snapshot.val();
-            if (data && data.status_exibicao === 'visivel') {
-                nomeTxt.innerText = data.modo_atual;
-                descTxt.innerText = data.descricao;
+            
+            if (data && data.status_exibicao === 'visivel' && data.imagem_url) {
+                // Define o caminho da imagem recebido do Dashboard
+                imgElement.src = data.imagem_url;
                 
-                // --- PARTE NOVA: MOSTRAR A IMAGEM ---
-                if (data.imagem_url) {
-                    const cardElement = document.querySelector('.card');
-                    // Define a imagem como fundo e mantém um efeito escuro por trás do texto para leitura
-                    cardElement.style.backgroundImage = `url('${data.imagem_url}'), linear-gradient(135deg, rgba(15, 12, 41, 0.8), rgba(48, 43, 99, 0.8))`;
-                    cardElement.style.backgroundSize = 'cover';
-                    cardElement.style.backgroundPosition = 'center';
-                }
-                // ------------------------------------
-
-                container.style.opacity = '1';
-                container.style.transform = 'scale(1)';
+                // Torna o container visível imediatamente
+                container.classList.add('visible');
             } else {
-                container.style.opacity = '0';
-                container.style.transform = 'scale(0.8)';
+                // Esconde o container
+                container.classList.remove('visible');
+                imgElement.src = ""; // Limpa a imagem anterior
             }
         });
     </script>

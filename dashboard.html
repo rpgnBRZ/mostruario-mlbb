@@ -4,69 +4,118 @@
     <meta charset="UTF-8">
     <title>Painel do Organizador - MLBB</title>
     <style>
-        body { font-family: sans-serif; background: #222; color: white; padding: 20px; text-align: center; }
-        .btn { 
-            padding: 15px 25px; margin: 10px; font-size: 16px; cursor: pointer; 
-            border: none; border-radius: 5px; transition: 0.3s;
+        body { 
+            font-family: sans-serif; 
+            background: #1a1a1a; 
+            color: white; 
+            padding: 20px; 
+            text-align: center; 
         }
+        h1 { color: #f1c40f; text-shadow: 2px 2px 4px #000; }
+        
+        /* Container para os botões ficarem organizados */
+        .modos {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            max-width: 1000px;
+            margin: 20px auto;
+            padding: 10px;
+        }
+
+        .btn { 
+            padding: 15px; 
+            font-size: 14px; 
+            font-weight: bold;
+            cursor: pointer; 
+            border: 2px solid #d4af37; 
+            border-radius: 8px; 
+            transition: 0.3s;
+            text-transform: uppercase;
+        }
+        
         .btn-show { background: #27ae60; color: white; }
-        .btn-hide { background: #c0392b; color: white; }
+        .btn-show:hover { background: #2ecc71; transform: scale(1.02); }
+        
+        .btn-hide { 
+            background: #c0392b; 
+            color: white; 
+            width: 100%; 
+            max-width: 400px;
+            margin-top: 30px;
+            border-color: #7f8c8d;
+        }
+        .btn-hide:hover { background: #e74c3c; }
+
+        .controles { margin-top: 40px; border-top: 1px solid #444; padding-top: 20px; }
     </style>
 </head>
 <body>
     <h1>Controle do Showcase</h1>
     
-    <div class="modos"></div>
+    <div class="modos" id="lista-botoes"></div>
 
     <div class="controles">
-        <button class="btn btn-hide" onclick="esconderCarta()">Esconder Carta no OBS</button>
+        <button class="btn btn-hide" onclick="esconderCarta()">ESCONDER CARTA NO OBS</button>
     </div>
 
     <script type="module">
-       import { db, ref, set } from './firebase-config.js';
+        import { db, ref, set } from './firebase-config.js';
 
-// LISTA OFICIAL DE MODOS (Baseada nos seus arquivos no GitHub)
-const meusModos = [
-    { nome: 'Apenas Magos', desc: 'Somente heróis da classe Mago são permitidos!', img: 'modos/APENAS_UNICO(A)-apenas-magos.jpeg' },
-    { nome: 'Apenas Suporte', desc: 'Somente heróis da classe Suporte!', img: 'modos/APENAS_UNICO(A)-apenas-suporte.jpeg' },
-    { nome: 'Classe Atirador', desc: 'Todos devem jogar de Atirador!', img: 'modos/APENAS_UNICO(A)-classe_atirador.jpeg' },
-    { nome: 'Lane Mid', desc: 'Confronto focado na Rota do Meio!', img: 'modos/APENAS_UNICO(A)-lane_mid.jpeg' },
-    { nome: 'Substituído por Bot', desc: 'Um jogador será substituído pela IA!', img: 'modos/CARTA_DO_ROBO-substituido_por_boot.jpeg' },
-    { nome: 'Impostor', desc: 'Alguém está jogando contra o próprio time...', img: 'modos/DEIXA_QUE_EU_ESCOLHO-impostor.jpeg' },
-    { nome: 'Proibido Executar', desc: 'O feitiço Executar está banido!', img: 'modos/EU_PROIBO-feitiço-executar.jpeg' },
-    { nome: 'Proibido Flash', desc: 'Ninguém pode usar Flash nesta partida!', img: 'modos/EU_PROIBO-feito-flash.jpeg' },
-    { nome: 'Sem Comunicação', desc: 'É proibido usar o chat ou sinais!', img: 'modos/EU_PROIBO-comunicação.jpeg' },
-    { nome: 'Deixa que eu Escolho', desc: 'O capitão decide todos os picks!', img: 'modos/deixa_que_eu_escolho.jpeg' }
-    // Coloquei alguns exemplos acima. Você pode adicionar os outros seguindo o mesmo padrão.
-];
+        // CONFIGURAÇÃO: Nome da pasta no GitHub (mude para 'modos/' se trocar o nome da pasta)
+        const pastaImagens = 'assets/';
 
-const container = document.querySelector('.modos');
-container.innerHTML = ''; 
+        // LISTA DE TODOS OS SEUS MODOS
+        const meusModos = [
+            { nome: 'Apenas Magos', img: 'APENAS_UNICO(A)-apenas-magos.jpeg' },
+            { nome: 'Apenas Suporte', img: 'APENAS_UNICO(A)-apenas-suporte.jpeg' },
+            { nome: 'Classe Atirador', img: 'APENAS_UNICO(A)-classe_atirador.jpeg' },
+            { nome: 'Classe Mago', img: 'APENAS_UNICO(A)-classe_mago.jpeg' },
+            { nome: 'Classe Tank', img: 'APENAS_UNICO(A)-classe_tank.jpeg' },
+            { nome: 'Lane Mid', img: 'APENAS_UNICO(A)-lane_mid.jpeg' },
+            { nome: 'Lane Ouro', img: 'APENAS_UNICO(A)-lane_ouro.jpeg' },
+            { nome: 'Lane XP', img: 'APENAS_UNICO(A)-lane_xp.jpeg' },
+            { nome: 'Substituído por Bot', img: 'CARTA_DO_ROBO-substituido_por_boot.jpeg' },
+            { nome: 'Impostor', img: 'DEIXA_QUE_EU_ESCOLHO-impostor.jpeg' },
+            { nome: 'Proibido Executar', img: 'EU_PROIBO-feitiço-executar.jpeg' },
+            { nome: 'Proibido Petrificar', img: 'EU_PROIBO-feitiço-petrificar.jpeg' },
+            { nome: 'Proibido Smite', img: 'EU_PROIBO-feitiço-smite.jpeg' },
+            { nome: 'Proibido Flash', img: 'EU_PROIBO-feito-flash.jpeg' },
+            { nome: 'Mid Bloqueada', img: 'EU_PROIBO-lane_mid_bloqueada.jpeg' },
+            { nome: 'Ouro Bloqueada', img: 'EU_PROIBO-lane_ouro.jpeg' },
+            { nome: 'XP Bloqueada', img: 'EU_PROIBO-lane_xp.jpeg' },
+            { nome: 'Lord Proibido', img: 'EU_PROIBO-lord.jpeg' },
+            { nome: 'Suportes Banidos', img: 'EU_PROIBO-suportes_banidos.jpeg' },
+            { nome: 'Tanks Banidos', img: 'EU_PROIBO-tanks_banidos.jpeg' },
+            { nome: 'Sem Comunicação', img: 'EU_PROIBO-comunicação.jpeg' },
+            { nome: 'Capitão Escolhe', img: 'deixa_que_eu_escolho.jpeg' }
+        ];
 
-// Cria os botões automaticamente na tela
-meusModos.forEach(modo => {
-    const btn = document.createElement('button');
-    btn.className = 'btn btn-show';
-    btn.style.display = 'block';
-    btn.style.width = '100%';
-    btn.innerText = `ATIVAR: ${modo.nome}`;
-    
-    btn.onclick = () => {
-        set(ref(db, 'showcase'), {
-            modo_atual: modo.nome,
-            descricao: modo.desc,
-            imagem_url: modo.img,
-            status_exibicao: 'visivel'
+        const container = document.getElementById('lista-botoes');
+
+        // Gera os botões automaticamente com base na lista acima
+        meusModos.forEach(modo => {
+            const btn = document.createElement('button');
+            btn.className = 'btn btn-show';
+            btn.innerText = modo.nome;
+            
+            btn.onclick = () => {
+                set(ref(db, 'showcase'), {
+                    modo_atual: modo.nome,
+                    descricao: "Regra ativa para esta partida!",
+                    imagem_url: pastaImagens + modo.img, // Monta o caminho: assets/nome_da_foto.jpeg
+                    status_exibicao: 'visivel'
+                });
+            };
+            container.appendChild(btn);
         });
-    };
-    container.appendChild(btn);
-});
 
-window.esconderCarta = () => {
-    set(ref(db, 'showcase'), {
-        status_exibicao: 'oculto'
-    });
-};
+        // Função global para esconder
+        window.esconderCarta = () => {
+            set(ref(db, 'showcase'), {
+                status_exibicao: 'oculto'
+            });
+        };
     </script>
 </body>
 </html>

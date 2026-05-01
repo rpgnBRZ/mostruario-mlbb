@@ -128,7 +128,7 @@ const showcaseRef = ref(db, 'showcase');
                 if (data.imagem_url) {
                     const cardElement = document.querySelector('.card');
                     // Define a imagem como fundo e mantém um efeito escuro por trás do texto para leitura
-                    cardElement.style.backgroundImage = `linear-gradient(135deg, rgba(15, 12, 41, 0.7), rgba(48, 43, 99, 0.7)), url('${data.imagem_url}')`;
+                    cardElement.style.backgroundImage = `url('${data.imagem_url}'), linear-gradient(135deg, rgba(15, 12, 41, 0.8), rgba(48, 43, 99, 0.8))`;
                     cardElement.style.backgroundSize = 'cover';
                     cardElement.style.backgroundPosition = 'center';
                 }

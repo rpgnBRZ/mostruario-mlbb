@@ -16,31 +16,57 @@
 <body>
     <h1>Controle do Showcase</h1>
     
-    <div class="modos">
-        <button class="btn btn-show" onclick="enviarModo('Modo Espelho', 'Todos os jogadores usam o mesmo herói!')">Ativar Espelho</button>
-        <button class="btn btn-show" onclick="enviarModo('Modo Sobrevivência', 'Apenas um time sairá vivo.')">Ativar Sobrevivência</button>
-    </div>
+    <div class="modos"></div>
 
     <div class="controles">
         <button class="btn btn-hide" onclick="esconderCarta()">Esconder Carta no OBS</button>
     </div>
 
     <script type="module">
-        import { db, ref, set } from './firebase-config.js';
+       import { db, ref, set } from './firebase-config.js';
 
-        window.enviarModo = (nome, desc) => {
-            set(ref(db, 'showcase'), {
-                modo_atual: nome,
-                descricao: desc,
-                status_exibicao: 'visivel'
-            });
-        };
+// LISTA OFICIAL DE MODOS (Baseada nos seus arquivos no GitHub)
+const meusModos = [
+    { nome: 'Apenas Magos', desc: 'Somente heróis da classe Mago são permitidos!', img: 'modos/APENAS_UNICO(A)-apenas-magos.jpeg' },
+    { nome: 'Apenas Suporte', desc: 'Somente heróis da classe Suporte!', img: 'modos/APENAS_UNICO(A)-apenas-suporte.jpeg' },
+    { nome: 'Classe Atirador', desc: 'Todos devem jogar de Atirador!', img: 'modos/APENAS_UNICO(A)-classe_atirador.jpeg' },
+    { nome: 'Lane Mid', desc: 'Confronto focado na Rota do Meio!', img: 'modos/APENAS_UNICO(A)-lane_mid.jpeg' },
+    { nome: 'Substituído por Bot', desc: 'Um jogador será substituído pela IA!', img: 'modos/CARTA_DO_ROBO-substituido_por_boot.jpeg' },
+    { nome: 'Impostor', desc: 'Alguém está jogando contra o próprio time...', img: 'modos/DEIXA_QUE_EU_ESCOLHO-impostor.jpeg' },
+    { nome: 'Proibido Executar', desc: 'O feitiço Executar está banido!', img: 'modos/EU_PROIBO-feitiço-executar.jpeg' },
+    { nome: 'Proibido Flash', desc: 'Ninguém pode usar Flash nesta partida!', img: 'modos/EU_PROIBO-feito-flash.jpeg' },
+    { nome: 'Sem Comunicação', desc: 'É proibido usar o chat ou sinais!', img: 'modos/EU_PROIBO-comunicação.jpeg' },
+    { nome: 'Deixa que eu Escolho', desc: 'O capitão decide todos os picks!', img: 'modos/deixa_que_eu_escolho.jpeg' }
+    // Coloquei alguns exemplos acima. Você pode adicionar os outros seguindo o mesmo padrão.
+];
 
-        window.esconderCarta = () => {
-            set(ref(db, 'showcase'), {
-                status_exibicao: 'oculto'
-            });
-        };
+const container = document.querySelector('.modos');
+container.innerHTML = ''; 
+
+// Cria os botões automaticamente na tela
+meusModos.forEach(modo => {
+    const btn = document.createElement('button');
+    btn.className = 'btn btn-show';
+    btn.style.display = 'block';
+    btn.style.width = '100%';
+    btn.innerText = `ATIVAR: ${modo.nome}`;
+    
+    btn.onclick = () => {
+        set(ref(db, 'showcase'), {
+            modo_atual: modo.nome,
+            descricao: modo.desc,
+            imagem_url: modo.img,
+            status_exibicao: 'visivel'
+        });
+    };
+    container.appendChild(btn);
+});
+
+window.esconderCarta = () => {
+    set(ref(db, 'showcase'), {
+        status_exibicao: 'oculto'
+    });
+};
     </script>
 </body>
 </html>

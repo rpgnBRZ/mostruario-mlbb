@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Definitiva - MLBB</title>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        :root {
+            --background: #09090b;
+            --foreground: #fafafa;
+            --surface: #18181b;
+            --surface-hover: #27272a;
+            --primary: #d4af37;
+            --primary-hover: #fcd34d;
+            --muted-foreground: #a1a1aa;
+            --border: #27272a;
+            --danger: #ef4444;
+            --success: #22c55e;
+            --radius: 8px;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--background);
+            color: var(--foreground);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* --- SIDEBAR --- */
+        aside {
+            width: 280px;
+            background: var(--surface);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            padding: 2rem 1.5rem;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 3rem;
+            color: var(--primary);
+        }
+
+        .nav-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1rem;
+            color: var(--muted-foreground);
+            border-radius: var(--radius);
+            margin-bottom: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: none;
+            background: transparent;
+            width: 100%;
+            text-align: left;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .nav-btn:hover {
+            background: var(--surface-hover);
+            color: var(--foreground);
+        }
+
+        .nav-btn.active {
+            background: rgba(212, 175, 55, 0.1);
+            color: var(--primary);
+        }
+
+        /* --- MAIN CONTENT --- */
+        main {
+            flex: 1;
+            padding: 2.5rem;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .status-pill {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.8rem;
+            background: var(--surface);
+            padding: 0.5rem 1rem;
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            color: var(--muted-foreground);
+        }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--danger);
+        }
+
+        .dot.active {
+            background: var(--success);
+            box-shadow: 0 0 8px var(--success);
+        }
+
+        /* --- TAB CONTENT --- */
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* --- MANUAL SELECTION (Grid of Categories) --- */
+        .manual-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .cat-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1.25rem;
+        }
+
+        .cat-title {
+            color: var(--primary);
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .mode-btn {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            padding: 0.65rem 0.85rem;
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--foreground);
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 0.5rem;
+            font-size: 0.85rem;
+        }
+
+        .mode-btn:hover { background: var(--surface-hover); border-color: var(--muted-foreground); }
+        .mode-btn.active { border-color: var(--primary); background: rgba(212, 175, 55, 0.05); color: var(--primary); }
+
+        /* --- ROLETA (Layout & Grid Selection) --- */
+        .roleta-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2.5rem;
+            align-items: start;
+        }
+
+        .wheel-box {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .wheel-container {
+            position: relative;
+            width: 380px;
+            height: 380px;
+        }
+
+        #wheel-canvas {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            transition: transform 2s cubic-bezier(0.15, 0, 0.15, 1);
+        }
+
+        .wheel-pointer {
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 25px;
+            height: 25px;
+            background: var(--primary);
+            clip-path: polygon(50% 100%, 0 0, 100% 0);
+            z-index: 10;
+        }
+
+        .spin-btn {
+            background: var(--primary);
+            color: black;
+            border: none;
+            padding: 1rem 2rem;
+            font-size: 1.1rem;
+            font-weight: 800;
+            border-radius: var(--radius);
+            cursor: pointer;
+            width: 100%;
+            margin-top: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            text-transform: uppercase;
+        }
+
+        /* ROLETA GRID SELECTION (Style from DR) */
+        .modes-grid-selection {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 0.75rem;
+        }
+
+        .mode-item-cb {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            padding: 0.75rem;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: all 0.2s;
+        }
+
+        .mode-item-cb:hover { background: var(--surface-hover); }
+        .mode-item-cb input { accent-color: var(--primary); width: 16px; height: 16px; }
+
+        /* Global Actions */
+        .btn-danger {
+            background: transparent;
+            border: 1px solid var(--danger);
+            color: var(--danger);
+            padding: 0.75rem;
+            border-radius: var(--radius);
+            cursor: pointer;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            font-weight: 600;
+            margin-top: 1rem;
+        }
+        .btn-danger:hover { background: var(--danger); color: white; }
+
+    </style>
+</head>
+<body>
+
+    <aside>
+        <div class="brand">
+            <i data-lucide="layout-dashboard" style="width: 28px;"></i>
+            <h1 style="font-family: 'Outfit'; font-size: 1.2rem;">MLBB DEFINITIVA</h1>
+        </div>
+        
+        <button class="nav-btn active" onclick="switchTab('manual')">
+            <i data-lucide="mouse-pointer-2"></i> Seleção Manual
+        </button>
+        <button class="nav-btn" onclick="switchTab('roleta')">
+            <i data-lucide="rotate-cw"></i> Roleta Sincronizada
+        </button>
+        
+        <div style="margin-top: auto;">
+            <button id="btn-hide-global" class="btn-danger">
+                <i data-lucide="eye-off"></i> Esconder Overlay
+            </button>
+        </div>
+    </aside>
+
+    <main>
+        <div class="header">
+            <h2 id="tab-title" style="font-size: 1.5rem; font-family: 'Outfit';">Seleção Manual</h2>
+            <div class="status-pill">
+                <div id="status-dot" class="dot"></div>
+                <span id="status-text">Overlay Oculto</span>
+            </div>
+        </div>
+
+        <!-- TAB: MANUAL -->
+        <div id="tab-manual" class="tab-content active">
+            <div id="manual-container" class="manual-grid">
+                <!-- Injected via JS -->
+            </div>
+        </div>
+
+        <!-- TAB: ROLETA -->
+        <div id="tab-roleta" class="tab-content">
+            <div class="roleta-layout">
+                <div class="wheel-box">
+                    <div class="wheel-container">
+                        <div class="wheel-pointer"></div>
+                        <canvas id="wheel-canvas" width="1000" height="1000"></canvas>
+                    </div>
+                    <button id="trigger-spin" class="spin-btn">Girar Roleta</button>
+                    <div style="margin-top: 1.5rem; text-align: center;">
+                        <span style="color: var(--muted-foreground); font-size: 0.8rem;">Último Resultado:</span>
+                        <div id="winner-name" style="font-size: 1.5rem; font-weight: 800; color: var(--primary);">---</div>
+                    </div>
+                </div>
+
+                <div class="selection-box">
+                    <h3 class="cat-title" style="margin-bottom: 1.5rem;"><i data-lucide="settings-2"></i> Modos Ativos na Roleta</h3>
+                    <div id="roleta-selection-grid" class="modes-grid-selection">
+                        <!-- Checkboxes in Grid injected via JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script type="module">
+        import { db, ref, set, onValue } from './firebase-config.js';
+
+        // --- DATABASE OF MODES ---
+        const fullModosData = [
+            { id: 'bot', nome: 'Substituído por Bot', cat: 'Especiais', color: '#f87171', img: 'CARTA_DO_ROBO-substituido_por_boot.jpeg', icon: 'bot' },
+            { id: 'impostor', nome: 'Impostor', cat: 'Especiais', color: '#fb923c', img: 'DEIXA_QUE_EU_ESCOLHO-impostor.jpeg', icon: 'user-x' },
+            { id: 'capitao', nome: 'Capitão Escolhe', cat: 'Especiais', color: '#fbbf24', img: 'deixa_que_eu_escolho.jpeg', icon: 'crown' },
+            { id: 'apenas-magos', nome: 'Apenas Magos', cat: 'Classes', color: '#818cf8', img: 'APENAS_UNICO(A)-apenas-magos.jpeg', icon: 'wand-2' },
+            { id: 'apenas-suporte', nome: 'Apenas Suporte', cat: 'Classes', color: '#f472b6', img: 'APENAS_UNICO(A)-apenas-suporte.jpeg', icon: 'heart-handshake' },
+            { id: 'classe-atirador', nome: 'Classe Atirador', cat: 'Classes', color: '#4ade80', img: 'APENAS_UNICO(A)-classe_atirador.jpeg', icon: 'crosshair' },
+            { id: 'classe-mago', nome: 'Classe Mago', cat: 'Classes', color: '#60a5fa', img: 'APENAS_UNICO(A)-classe_mago.jpeg', icon: 'sparkles' },
+            { id: 'classe-tank', nome: 'Classe Tank', cat: 'Classes', color: '#9ca3af', img: 'APENAS_UNICO(A)-classe_tank.jpeg', icon: 'shield' },
+            { id: 'lane-mid', nome: 'Lane Mid', cat: 'Lanes', color: '#c084fc', img: 'APENAS_UNICO(A)-lane_mid.jpeg', icon: 'map' },
+            { id: 'lane-ouro', nome: 'Lane Ouro', cat: 'Lanes', color: '#fbbf24', img: 'APENAS_UNICO(A)-lane_ouro.jpeg', icon: 'coins' },
+            { id: 'lane-xp', nome: 'Lane XP', cat: 'Lanes', color: '#f87171', img: 'APENAS_UNICO(A)-lane_xp.jpeg', icon: 'swords' },
+            { id: 'proibido-executar', nome: 'Proibido Executar', cat: 'Proibições', color: '#ef4444', img: 'EU_PROIBO-feitiço-executar.jpeg', icon: 'ban' },
+            { id: 'proibido-petrificar', nome: 'Proibido Petrificar', cat: 'Proibições', color: '#ef4444', img: 'EU_PROIBO-feitiço-petrificar.jpeg', icon: 'ban' },
+            { id: 'proibido-smite', nome: 'Proibido Smite', cat: 'Proibições', color: '#ef4444', img: 'EU_PROIBO-feitiço-smite.jpeg', icon: 'ban' },
+            { id: 'proibido-flash', nome: 'Proibido Flash', cat: 'Proibições', color: '#ef4444', img: 'EU_PROIBO-feito-flash.jpeg', icon: 'ban' },
+            { id: 'mid-bloqueada', nome: 'Mid Bloqueada', cat: 'Proibições', color: '#4b5563', img: 'EU_PROIBO-lane_mid_bloqueada.jpeg', icon: 'lock' },
+            { id: 'ouro-bloqueada', nome: 'Ouro Bloqueada', cat: 'Proibições', color: '#4b5563', img: 'EU_PROIBO-lane_ouro.jpeg', icon: 'lock' },
+            { id: 'xp-bloqueada', nome: 'XP Bloqueada', cat: 'Proibições', color: '#4b5563', img: 'EU_PROIBO-lane_xp.jpeg', icon: 'lock' },
+            { id: 'lord-proibido', nome: 'Lord Proibido', cat: 'Proibições', color: '#7c2d12', img: 'EU_PROIBO-lord.jpeg', icon: 'skull' },
+            { id: 'suportes-banidos', nome: 'Suportes Banidos', cat: 'Proibições', color: '#991b1b', img: 'EU_PROIBO-suportes_banidos.jpeg', icon: 'user-minus' },
+            { id: 'tanks-banidos', nome: 'Tanks Banidos', cat: 'Proibições', color: '#991b1b', img: 'EU_PROIBO-tanks_banidos.jpeg', icon: 'user-minus' },
+            { id: 'sem-comunicacao', nome: 'Sem Comunicação', cat: 'Proibições', color: '#ef4444', img: 'EU_PROIBO-comunicação.jpeg', icon: 'mic-off' }
+        ];
+
+        const catIcons = { 'Especiais': 'star', 'Classes': 'swords', 'Lanes': 'map', 'Proibições': 'shield-alert' };
+        let activeRoletaModos = [...fullModosData];
+        let isSpinning = false;
+
+        // --- TAB SWITCHING ---
+        window.switchTab = (tab) => {
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(`tab-${tab}`).classList.add('active');
+            event.currentTarget.classList.add('active');
+            document.getElementById('tab-title').innerText = tab === 'manual' ? 'Seleção Manual' : 'Roleta Sincronizada';
+            if (tab === 'roleta') drawWheel();
+        };
+
+        // --- RENDER MANUAL SELECTION (Minimalist Cards) ---
+        const manualContainer = document.getElementById('manual-container');
+        const cats = [...new Set(fullModosData.map(m => m.cat))];
+        
+        cats.forEach(cat => {
+            const card = document.createElement('div');
+            card.className = 'cat-card';
+            card.innerHTML = `<h3 class="cat-title"><i data-lucide="${catIcons[cat] || 'package'}"></i> ${cat}</h3>`;
+            
+            fullModosData.filter(m => m.cat === cat).forEach(modo => {
+                const btn = document.createElement('button');
+                btn.className = 'mode-btn';
+                btn.id = `manual-${modo.id}`;
+                btn.innerHTML = `
+                    <div style="display:flex; align-items:center; gap:0.5rem;">
+                        <i data-lucide="${modo.icon || 'circle'}" style="width:14px; opacity:0.6;"></i>
+                        <span>${modo.nome}</span>
+                    </div>
+                    <i data-lucide="check" class="check-icon" style="width:14px; display:none;"></i>
+                `;
+                btn.onclick = () => {
+                    set(ref(db, 'showcase'), {
+                        modo_atual: modo.nome,
+                        imagem_url: 'assets/' + modo.img,
+                        status_exibicao: 'visivel'
+                    });
+                };
+                card.appendChild(btn);
+            });
+            manualContainer.appendChild(card);
+        });
+
+        // --- RENDER ROLETA GRID SELECTION (Style from DR) ---
+        const roletaGrid = document.getElementById('roleta-selection-grid');
+        fullModosData.forEach(modo => {
+            const label = document.createElement('label');
+            label.className = 'mode-item-cb';
+            label.innerHTML = `
+                <input type="checkbox" checked value="${modo.id}" class="roleta-cb">
+                <span>${modo.nome}</span>
+            `;
+            roletaGrid.appendChild(label);
+        });
+
+        document.querySelectorAll('.roleta-cb').forEach(cb => {
+            cb.onchange = () => {
+                const ids = Array.from(document.querySelectorAll('.roleta-cb:checked')).map(el => el.value);
+                set(ref(db, 'roleta_config/active_modes'), ids);
+            };
+        });
+
+        // --- WHEEL LOGIC ---
+        const canvas = document.getElementById('wheel-canvas');
+        const ctx = canvas.getContext('2d');
+
+        function drawWheel() {
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const radius = canvas.width / 2 - 10;
+            if (activeRoletaModos.length === 0) { ctx.clearRect(0,0,canvas.width,canvas.height); return; }
+            const sliceAngle = (2 * Math.PI) / activeRoletaModos.length;
+            ctx.clearRect(0,0,canvas.width,canvas.height);
+            activeRoletaModos.forEach((modo, i) => {
+                const angle = i * sliceAngle;
+                ctx.beginPath();
+                ctx.moveTo(centerX, centerY);
+                ctx.arc(centerX, centerY, radius, angle, angle + sliceAngle);
+                ctx.fillStyle = i % 2 === 0 ? '#18181b' : '#222226';
+                ctx.fill();
+                ctx.save();
+                ctx.translate(centerX, centerY);
+                ctx.rotate(angle + sliceAngle / 2);
+                ctx.textAlign = 'right';
+                ctx.fillStyle = modo.color || '#fff';
+                ctx.font = 'bold 30px Inter';
+                ctx.fillText(modo.nome, radius - 40, 10);
+                ctx.restore();
+            });
+        }
+
+        function spinLocally(targetId) {
+            if (isSpinning) return;
+            isSpinning = true;
+            const idx = activeRoletaModos.findIndex(m => m.id === targetId);
+            const extra = 8 + Math.floor(Math.random() * 5);
+            const slice = 360 / activeRoletaModos.length;
+            const rot = (extra * 360) + (270 - (idx * slice) - (slice / 2));
+            canvas.style.transform = `rotate(${rot}deg)`;
+            setTimeout(() => {
+                isSpinning = false;
+                document.getElementById('winner-name').innerText = activeRoletaModos[idx].nome;
+                document.getElementById('winner-name').style.color = activeRoletaModos[idx].color;
+            }, 2000);
+        }
+
+        document.getElementById('trigger-spin').onclick = () => {
+            if (activeRoletaModos.length === 0) return alert("Selecione modos!");
+            const winner = activeRoletaModos[Math.floor(Math.random() * activeRoletaModos.length)];
+            spinLocally(winner.id);
+            set(ref(db, 'roleta_command'), { command: 'spin', targetId: winner.id, timestamp: Date.now() });
+        };
+
+        // --- FIREBASE SYNC ---
+        onValue(ref(db, 'roleta_config/active_modes'), (snapshot) => {
+            const ids = snapshot.val();
+            activeRoletaModos = ids ? fullModosData.filter(m => ids.includes(m.id)) : [...fullModosData];
+            document.querySelectorAll('.roleta-cb').forEach(cb => cb.checked = ids ? ids.includes(cb.value) : true);
+            drawWheel();
+        });
+
+        onValue(ref(db, 'showcase'), (snapshot) => {
+            const data = snapshot.val();
+            document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+            const statusDot = document.getElementById('status-dot');
+            const statusText = document.getElementById('status-text');
+
+            if (data && data.status_exibicao === 'visivel') {
+                statusDot.classList.add('active');
+                statusText.innerText = 'Overlay Visível';
+                const modo = fullModosData.find(m => m.nome === data.modo_atual);
+                if (modo) document.getElementById(`manual-${modo.id}`)?.classList.add('active');
+            } else {
+                statusDot.classList.remove('active');
+                statusText.innerText = 'Overlay Oculto';
+            }
+        });
+
+        document.getElementById('btn-hide-global').onclick = () => set(ref(db, 'showcase'), { status_exibicao: 'oculto' });
+
+        drawWheel();
+        lucide.createIcons();
+    </script>
+</body>
+</html>

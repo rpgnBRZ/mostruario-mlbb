@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MLBB Showcase - Roleta & Cartas</title>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Outfit:wght@600;800&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --background: #000000;
+            --primary: #d4af37;
+            --primary-glow: rgba(212, 175, 55, 0.4);
+            --surface: #121212;
+            --card-width: 320px;
+            --card-height: 450px;
+        }
+
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: var(--background);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            font-family: 'Inter', sans-serif;
+        }
+
+        #main-wrapper {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* --- ROLETA --- */
+        #wheel-wrapper {
+            position: relative;
+            width: 500px;
+            height: 500px;
+            transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+            opacity: 0;
+            transform: scale(0.5);
+            filter: blur(10px);
+        }
+
+        #wheel-wrapper.visible {
+            opacity: 1;
+            transform: scale(1);
+            filter: blur(0);
+        }
+
+        #wheel-wrapper.dimmed {
+            opacity: 0;
+            transform: scale(1.2);
+            filter: blur(10px);
+        }
+
+        .wheel-pointer {
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 35px;
+            height: 35px;
+            background: var(--primary);
+            clip-path: polygon(50% 100%, 0 0, 100% 0);
+            z-index: 10;
+            filter: drop-shadow(0 0 10px var(--primary-glow));
+        }
+
+        #wheel-canvas {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 8px solid #18181b;
+            box-shadow: 0 0 50px rgba(0,0,0,0.8);
+            transition: transform 2s cubic-bezier(0.15, 0, 0.15, 1);
+        }
+
+        /* --- CARTA --- */
+        #card-container {
+            position: absolute;
+            perspective: 1000px;
+            opacity: 0;
+            transform: scale(0.8);
+            transition: all 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            pointer-events: none;
+            z-index: 20;
+        }
+
+        #card-container.visible {
+            opacity: 1;
+            transform: scale(1);
+            pointer-events: auto;
+        }
+
+        .card {
+            width: var(--card-width);
+            height: var(--card-height);
+            background-size: cover;
+            background-position: center;
+            border-radius: 15px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5), 0 0 30px var(--primary-glow);
+            border: 2px solid var(--primary);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -150%;
+            width: 50%;
+            height: 200%;
+            background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.3) 50%, rgba(255,255,255,0) 100%);
+            transform: rotate(25deg);
+            pointer-events: none;
+        }
+
+        #card-container.visible .card::after {
+            animation: shine 3.5s infinite;
+        }
+
+        @keyframes shine {
+            0% { left: -150%; }
+            20% { left: 150%; }
+            100% { left: 150%; }
+        }
+
+        /* --- PARTICLES --- */
+        .particle {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: var(--primary);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 15;
+        }
+
+        @keyframes confetti {
+            0% { transform: translate(0, 0) scale(1); opacity: 1; }
+            100% { transform: translate(var(--tx), var(--ty)) scale(0); opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="main-wrapper">
+        <!-- Roleta -->
+        <div id="wheel-wrapper">
+            <div class="wheel-pointer"></div>
+            <canvas id="wheel-canvas" width="1000" height="1000"></canvas>
+        </div>
+
+        <!-- Carta -->
+        <div id="card-container">
+            <div class="card" id="result-card"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { db, ref, set, onValue } from './firebase-config.js';
+
+        const canvas = document.getElementById('wheel-canvas');
+        const ctx = canvas.getContext('2d');
+        const wheelWrapper = document.getElementById('wheel-wrapper');
+        const cardContainer = document.getElementById('card-container');
+        const resultCard = document.getElementById('result-card');
+
+        const fullModosData = [
+            { id: 'bot', nome: 'Bot', color: '#f87171', img: 'CARTA_DO_ROBO-substituido_por_boot.jpeg' },
+            { id: 'impostor', nome: 'Impostor', color: '#fb923c', img: 'DEIXA_QUE_EU_ESCOLHO-impostor.jpeg' },
+            { id: 'capitao', nome: 'Capitão', color: '#fbbf24', img: 'deixa_que_eu_escolho.jpeg' },
+            { id: 'apenas-magos', nome: 'Magos', color: '#818cf8', img: 'APENAS_UNICO(A)-apenas-magos.jpeg' },
+            { id: 'apenas-suporte', nome: 'Suporte', color: '#f472b6', img: 'APENAS_UNICO(A)-apenas-suporte.jpeg' },
+            { id: 'classe-atirador', nome: 'Atirador', color: '#4ade80', img: 'APENAS_UNICO(A)-classe_atirador.jpeg' },
+            { id: 'classe-mago', nome: 'Mago', color: '#60a5fa', img: 'APENAS_UNICO(A)-classe_mago.jpeg' },
+            { id: 'classe-tank', nome: 'Tank', color: '#9ca3af', img: 'APENAS_UNICO(A)-classe_tank.jpeg' },
+            { id: 'lane-mid', nome: 'Mid', color: '#c084fc', img: 'APENAS_UNICO(A)-lane_mid.jpeg' },
+            { id: 'lane-ouro', nome: 'Ouro', color: '#fbbf24', img: 'APENAS_UNICO(A)-lane_ouro.jpeg' },
+            { id: 'lane-xp', nome: 'XP', color: '#f87171', img: 'APENAS_UNICO(A)-lane_xp.jpeg' },
+            { id: 'proibido-executar', nome: 'Executar', color: '#ef4444', img: 'EU_PROIBO-feitiço-executar.jpeg' },
+            { id: 'proibido-petrificar', nome: 'Petrificar', color: '#ef4444', img: 'EU_PROIBO-feitiço-petrificar.jpeg' },
+            { id: 'proibido-smite', nome: 'Smite', color: '#ef4444', img: 'EU_PROIBO-feitiço-smite.jpeg' },
+            { id: 'proibido-flash', nome: 'Flash', color: '#ef4444', img: 'EU_PROIBO-feito-flash.jpeg' },
+            { id: 'mid-bloqueada', nome: 'No Mid', color: '#4b5563', img: 'EU_PROIBO-lane_mid_bloqueada.jpeg' },
+            { id: 'ouro-bloqueada', nome: 'No Ouro', color: '#4b5563', img: 'EU_PROIBO-lane_ouro.jpeg' },
+            { id: 'xp-bloqueada', nome: 'No XP', color: '#4b5563', img: 'EU_PROIBO-lane_xp.jpeg' },
+            { id: 'lord-proibido', nome: 'No Lord', color: '#7c2d12', img: 'EU_PROIBO-lord.jpeg' },
+            { id: 'suportes-banidos', nome: 'No Sup', color: '#991b1b', img: 'EU_PROIBO-suportes_banidos.jpeg' },
+            { id: 'tanks-banidos', nome: 'No Tank', color: '#991b1b', img: 'EU_PROIBO-tanks_banidos.jpeg' },
+            { id: 'sem-comunicacao', nome: 'No Mic', color: '#ef4444', img: 'EU_PROIBO-comunicação.jpeg' }
+        ];
+
+        let activeModos = [...fullModosData];
+        let currentRotation = 0;
+        let isSpinning = false;
+
+        function drawWheel() {
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const radius = canvas.width / 2 - 10;
+            if (activeModos.length === 0) return;
+            const sliceAngle = (2 * Math.PI) / activeModos.length;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            activeModos.forEach((modo, i) => {
+                const angle = i * sliceAngle;
+                ctx.beginPath();
+                ctx.moveTo(centerX, centerY);
+                ctx.arc(centerX, centerY, radius, angle, angle + sliceAngle);
+                ctx.fillStyle = i % 2 === 0 ? '#121212' : '#1a1a1a';
+                ctx.fill();
+                ctx.strokeStyle = 'rgba(212, 175, 55, 0.1)';
+                ctx.stroke();
+                ctx.save();
+                ctx.translate(centerX, centerY);
+                ctx.rotate(angle + sliceAngle / 2);
+                ctx.textAlign = 'right';
+                ctx.fillStyle = modo.color || '#fff';
+                ctx.font = 'bold 28px Inter';
+                ctx.fillText(modo.nome, radius - 40, 10);
+                ctx.restore();
+            });
+        }
+
+        function spin(targetId) {
+            if (isSpinning) return;
+            isSpinning = true;
+
+            // 1. Mostrar roleta e ocultar carta atual
+            wheelWrapper.classList.remove('dimmed');
+            wheelWrapper.classList.add('visible');
+            cardContainer.classList.remove('visible');
+
+            const extraSpins = 8 + Math.floor(Math.random() * 5);
+            const targetIndex = activeModos.findIndex(m => m.id === targetId);
+            if (targetIndex === -1) return isSpinning = false;
+
+            const sliceAngle = 360 / activeModos.length;
+            const targetRotation = (extraSpins * 360) + (270 - (targetIndex * sliceAngle) - (sliceAngle / 2));
+            
+            // Pequeno delay para a animação de entrada da roleta terminar antes de girar
+            setTimeout(() => {
+                canvas.style.transform = `rotate(${targetRotation}deg)`;
+            }, 500);
+
+            // 2. Aguarda o fim do giro (2s) + o delay solicitado (1.6s)
+            setTimeout(() => {
+                isSpinning = false;
+                const winner = activeModos[targetIndex];
+                
+                // Delay adicional de 1.6s antes de mostrar a carta
+                setTimeout(() => {
+                    revealWinner(winner);
+                }, 1600);
+
+            }, 2500); // 2.5s total para compensar o delay de entrada
+        }
+
+        function revealWinner(winner) {
+            resultCard.style.backgroundImage = `url('assets/${winner.img}')`;
+            
+            // Mostrar carta
+            cardContainer.classList.add('visible');
+            
+            // Ocultar roleta suavemente
+            wheelWrapper.classList.remove('visible');
+            wheelWrapper.classList.add('dimmed');
+            
+            createConfetti();
+            
+            // Sincronizar com Firebase Showcase para outros overlays
+            set(ref(db, 'showcase'), {
+                modo_atual: winner.nome,
+                imagem_url: 'assets/' + winner.img,
+                status_exibicao: 'visivel',
+                timestamp: Date.now()
+            });
+        }
+
+        function createConfetti() {
+            for (let i = 0; i < 30; i++) {
+                const p = document.createElement('div');
+                p.className = 'particle';
+                const tx = (Math.random() - 0.5) * 800;
+                const ty = (Math.random() - 0.5) * 800;
+                p.style.setProperty('--tx', `${tx}px`);
+                p.style.setProperty('--ty', `${ty}px`);
+                p.style.left = '50%';
+                p.style.top = '50%';
+                p.style.animation = `confetti ${1 + Math.random()}s ease-out forwards`;
+                document.body.appendChild(p);
+                setTimeout(() => p.remove(), 2000);
+            }
+        }
+
+        // Listen for remote spin commands
+        onValue(ref(db, 'roleta_command'), (snapshot) => {
+            const data = snapshot.val();
+            if (data && data.timestamp > Date.now() - 3000) {
+                if (data.command === 'spin') spin(data.targetId);
+            }
+        });
+
+        // Listen for active modes config
+        onValue(ref(db, 'roleta_config/active_modes'), (snapshot) => {
+            const ids = snapshot.val();
+            activeModos = ids ? fullModosData.filter(m => ids.includes(m.id)) : [...fullModosData];
+            drawWheel();
+        });
+
+        // Global Hide
+        onValue(ref(db, 'showcase'), (snapshot) => {
+            const data = snapshot.val();
+            if (data && data.status_exibicao === 'oculto') {
+                cardContainer.classList.remove('visible');
+                wheelWrapper.classList.remove('dimmed');
+            }
+        });
+
+        drawWheel();
+    </script>
+</body>
+</html>

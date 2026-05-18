@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Index+roleta</title>
+    <title>MLBB Showcase - Roleta & Cartas</title>
     
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Outfit:wght@600;800&display=swap" rel="stylesheet">
@@ -279,6 +279,7 @@
             
             // Sincronizar com Firebase Showcase para outros overlays
             set(ref(db, 'showcase'), {
+                modo_id: winner.id,
                 modo_atual: winner.nome,
                 imagem_url: 'assets/' + winner.img,
                 status_exibicao: 'visivel',
@@ -317,12 +318,20 @@
             drawWheel();
         });
 
-        // Global Hide
+        // Global Sync (Hide & Manual Show)
         onValue(ref(db, 'showcase'), (snapshot) => {
             const data = snapshot.val();
-            if (data && data.status_exibicao === 'oculto') {
+            if (!data) return;
+
+            if (data.status_exibicao === 'oculto') {
                 cardContainer.classList.remove('visible');
                 wheelWrapper.classList.remove('dimmed');
+                wheelWrapper.classList.remove('visible');
+            } else if (data.status_exibicao === 'visivel' && !isSpinning) {
+                resultCard.style.backgroundImage = `url('${data.imagem_url}')`;
+                cardContainer.classList.add('visible');
+                wheelWrapper.classList.remove('visible');
+                wheelWrapper.classList.add('dimmed');
             }
         });
 

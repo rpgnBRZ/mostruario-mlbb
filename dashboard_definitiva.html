@@ -142,7 +142,7 @@
         /* --- MANUAL SELECTION (Grid of Categories) --- */
         .manual-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
             gap: 1.5rem;
         }
 
@@ -183,6 +183,8 @@
 
         .mode-btn:hover { background: var(--surface-hover); border-color: var(--muted-foreground); }
         .mode-btn.active { border-color: var(--primary); background: rgba(212, 175, 55, 0.05); color: var(--primary); }
+        .mode-btn .check-icon { display: none; }
+        .mode-btn.active .check-icon { display: block; }
 
         /* --- ROLETA (Layout & Grid Selection) --- */
         .roleta-layout {
@@ -412,10 +414,11 @@
                         <i data-lucide="${modo.icon || 'circle'}" style="width:14px; opacity:0.6;"></i>
                         <span>${modo.nome}</span>
                     </div>
-                    <i data-lucide="check" class="check-icon" style="width:14px; display:none;"></i>
+                    <i data-lucide="check" class="check-icon" style="width:14px;"></i>
                 `;
                 btn.onclick = () => {
                     set(ref(db, 'showcase'), {
+                        modo_id: modo.id,
                         modo_atual: modo.nome,
                         imagem_url: 'assets/' + modo.img,
                         status_exibicao: 'visivel'
@@ -513,7 +516,7 @@
             if (data && data.status_exibicao === 'visivel') {
                 statusDot.classList.add('active');
                 statusText.innerText = 'Overlay Visível';
-                const modo = fullModosData.find(m => m.nome === data.modo_atual);
+                const modo = fullModosData.find(m => (data.modo_id && m.id === data.modo_id) || (data.imagem_url && data.imagem_url.includes(m.img)) || m.nome === data.modo_atual);
                 if (modo) document.getElementById(`manual-${modo.id}`)?.classList.add('active');
             } else {
                 statusDot.classList.remove('active');

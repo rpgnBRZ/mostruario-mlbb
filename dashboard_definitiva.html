@@ -38,12 +38,12 @@
 
         /* --- SIDEBAR --- */
         aside {
-            width: 280px;
+            width: 220px;
             background: var(--surface);
             border-right: 1px solid var(--border);
             display: flex;
             flex-direction: column;
-            padding: 2rem 1.5rem;
+            padding: 1.5rem 1rem;
         }
 
         .brand {
@@ -142,22 +142,22 @@
         /* --- MANUAL SELECTION (Grid of Categories) --- */
         .manual-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 1.5rem;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 1rem;
         }
 
         .cat-card {
             background: var(--surface);
             border: 1px solid var(--border);
             border-radius: var(--radius);
-            padding: 1.25rem;
+            padding: 1rem;
         }
 
         .cat-title {
             color: var(--primary);
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             font-weight: 600;
-            margin-bottom: 1rem;
+            margin-bottom: 0.85rem;
             display: flex;
             align-items: center;
             gap: 0.5rem;
@@ -170,15 +170,15 @@
             align-items: center;
             justify-content: space-between;
             width: 100%;
-            padding: 0.65rem 0.85rem;
+            padding: 0.5rem 0.75rem;
             background: transparent;
             border: 1px solid var(--border);
             border-radius: 6px;
             color: var(--foreground);
             cursor: pointer;
             transition: all 0.2s;
-            margin-bottom: 0.5rem;
-            font-size: 0.85rem;
+            margin-bottom: 0.4rem;
+            font-size: 0.8rem;
         }
 
         .mode-btn:hover { background: var(--surface-hover); border-color: var(--muted-foreground); }

@@ -1,0 +1,3759 @@
+<!DOCTYPE html>
+<!--
+  ====================================================================
+  dashboard_completa_mobileV6.html
+  Dashboard completa para gerenciamento de partidas de Mobile Legends:
+  Bang Bang (MLBB). Possui 4 abas principais:
+    - Manual     : Seleção manual de cartas/modos
+    - Roleta     : Roleta aleatória de modos
+    - Draft      : Sistema de torneio com chaves (dupla eliminação)
+    - Nova Carta : Criação de cartas customizadas
+  Sincronizado com Firebase Realtime Database para overlay externo.
+  ====================================================================
+-->
+<html lang="pt-br">
+
+<head>
+    <!--
+      Meta tags essenciais:
+      - charset=UTF-8  : Suporte a caracteres acentuados (português)
+      - viewport       : Responsividade em dispositivos móveis
+    -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Completa - MLBB</title>
+
+    <!--
+      Google Fonts:
+      - Inter   : Fonte principal (pesos 400, 500, 600, 700)
+      - Outfit  : Fonte para títulos e destaques (pesos 600, 800)
+    -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;800&display=swap"
+        rel="stylesheet">
+
+    <!--
+      Lucide Icons (unpkg CDN):
+      Biblioteca de ícones SVG via atributo data-lucide.
+      Inicializada com lucide.createIcons() no final do script.
+    -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+
+    <style>
+        /*
+          ==========================================================
+          VARIÁVEIS GLOBAIS (CSS Custom Properties)
+          Tema escuro com destaque em dourado (MLBB-inspired).
+          ==========================================================
+        */
+        :root {
+            --background: #09090b;
+            /* Fundo principal (preto profundo) */
+            --foreground: #fafafa;
+            /* Texto principal (quase branco) */
+            --surface: #18181b;
+            /* Superfície de cartões/containers */
+            --surface-hover: #27272a;
+            /* Hover de superfícies interativas */
+            --primary: #d4af37;
+            /* Dourado MLBB (cor primária) */
+            --primary-hover: #fcd34d;
+            /* Dourado mais claro para hover */
+            --muted-foreground: #a1a1aa;
+            /* Texto secundário/cinza */
+            --border: #27272a;
+            /* Cor de bordas padrão */
+            --danger: #ef4444;
+            /* Vermelho para ações destrutivas */
+            --success: #22c55e;
+            /* Verde para sucesso/ativo */
+            --radius: 8px;
+            /* Raio de borda padrão */
+        }
+
+        /*
+          Reset universal:
+          Remove margens/paddings padrão e força box-sizing consistente.
+        */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        /*
+          Body:
+          Layout flex em linha (sidebar + main), ocupa viewport inteira.
+          overflow: hidden evita scroll duplicado (scroll apenas no <main>).
+        */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--background);
+            color: var(--foreground);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /*
+          ==========================================================
+          SIDEBAR (barra lateral esquerda)
+          Largura fixa de 220px, fundo escuro, borda direita sutil.
+          Contém: brand (logo), botões de navegação, botão "Esconder".
+          ==========================================================
+        */
+        aside {
+            width: 220px;
+            background: var(--surface);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            padding: 1.5rem 1rem;
+        }
+
+        /*
+          Brand (logo/título):
+          Ícone + "MLBB ADMIN" no topo da sidebar.
+        */
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 3rem;
+            color: var(--primary);
+        }
+
+        /*
+          Botão de navegação (nav-btn):
+          Estilo base para todas as abas do menu lateral.
+          - Largura total (100%) para preencher a sidebar
+          - Hover: realça a superfície
+          - Active: fundo dourado translúcido + texto dourado
+        */
+        .nav-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1rem;
+            color: var(--muted-foreground);
+            border-radius: var(--radius);
+            margin-bottom: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: none;
+            background: transparent;
+            width: 100%;
+            text-align: left;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .nav-btn:hover {
+            background: var(--surface-hover);
+            color: var(--foreground);
+        }
+
+        .nav-btn.active {
+            background: rgba(212, 175, 55, 0.1);
+            color: var(--primary);
+        }
+
+        /*
+          ==========================================================
+          MAIN CONTENT (conteúdo principal)
+          Ocupa o espaço restante ao lado da sidebar.
+          overflow-y: auto permite scroll vertical quando necessário.
+          ==========================================================
+        */
+        main {
+            flex: 1;
+            padding: 2.5rem;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        /*
+          Header (topo da área principal):
+          Título da aba atual à esquerda, status pill à direita.
+        */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        /*
+          Status pill (indicador de overlay):
+          Pequena cápsula que mostra se o overlay está visível ou oculto.
+          Combina com o Firebase (nó "showcase").
+        */
+        .status-pill {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.8rem;
+            background: var(--surface);
+            padding: 0.5rem 1rem;
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            color: var(--muted-foreground);
+        }
+
+        /*
+          Dot (bolinha de status):
+          - Padrão: vermelha (overlay oculto)
+          - .active: verde com glow (overlay visível)
+        */
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--danger);
+        }
+
+        .dot.active {
+            background: var(--success);
+            box-shadow: 0 0 8px var(--success);
+        }
+
+        /*
+          ==========================================================
+          TAB CONTENT (conteúdo das abas)
+          Apenas uma aba por vez fica visível (.active).
+          Animação fadeIn suave ao trocar de aba.
+          ==========================================================
+        */
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /*
+          Keyframes: fadeIn
+          Desloca 5px para cima enquanto aumenta opacidade.
+        */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(5px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /*
+          ==========================================================
+          SELEÇÃO MANUAL (Grid de Categorias)
+          Grid responsivo com auto-fill para cartões de categoria.
+          Cada cartão contém botões de modo (cartas).
+          ==========================================================
+        */
+        .manual-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 1rem;
+        }
+
+        /*
+          Cartão de categoria:
+          Container para agrupar modos de uma mesma categoria.
+        */
+        .cat-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1rem;
+        }
+
+        /*
+          Título da categoria:
+          Dourado, uppercase, com ícone Lucide à esquerda.
+        */
+        .cat-title {
+            color: var(--primary);
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /*
+          Botão de modo (carta individual):
+          - Largura total dentro do cartão
+          - Hover: realça borda e fundo
+          - Active: borda dourada + fundo translúcido (modo selecionado)
+          - .check-icon aparece apenas quando ativo
+        */
+        .mode-btn {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            padding: 0.5rem 0.75rem;
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--foreground);
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 0.4rem;
+            font-size: 0.8rem;
+        }
+
+        .mode-btn:hover {
+            background: var(--surface-hover);
+            border-color: var(--muted-foreground);
+        }
+
+        .mode-btn.active {
+            border-color: var(--primary);
+            background: rgba(212, 175, 55, 0.05);
+            color: var(--primary);
+        }
+
+        .mode-btn .check-icon {
+            display: none;
+            /* Ícone de check oculto por padrão */
+        }
+
+        .mode-btn.active .check-icon {
+            display: block;
+            /* Exibe check quando o modo está selecionado */
+        }
+
+        /*
+          ==========================================================
+          ROLETA (Layout principal + Grid de Seleção)
+          Layout em duas colunas: roda (canvas) e checkboxes.
+          ==========================================================
+        */
+        .roleta-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            /* Duas colunas iguais */
+            gap: 2.5rem;
+            align-items: start;
+        }
+
+        /*
+          Caixa da roleta:
+          Container que envolve o canvas e o botão "Girar".
+        */
+        .wheel-box {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /*
+          Container da roda:
+          Proporção 1:1 (quadrado perfeito), posicionamento relativo
+          para o ponteiro absoluto.
+        */
+        .wheel-container {
+            position: relative;
+            width: 100%;
+            max-width: 380px;
+            aspect-ratio: 1 / 1;
+        }
+
+        /*
+          Canvas da roleta:
+          A transição transform é usada para animar o giro (rotação).
+          cubic-bezier suave com easing personalizado.
+        */
+        #wheel-canvas {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            transition: transform 2s cubic-bezier(0.15, 0, 0.15, 1);
+        }
+
+        /*
+          Ponteiro da roleta (triângulo dourado):
+          Posicionado no topo central, apontando para baixo.
+        */
+        .wheel-pointer {
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 25px;
+            height: 25px;
+            background: var(--primary);
+            clip-path: polygon(50% 100%, 0 0, 100% 0);
+            z-index: 10;
+        }
+
+        /*
+          Botão "Girar Roleta":
+          Fundo dourado, texto preto, uppercase, ocupando largura total.
+          - Hover: tom mais claro + leve elevação
+          - Disabled: opacidade reduzida, cursor not-allowed
+        */
+        .spin-btn {
+            background: var(--primary);
+            color: black;
+            border: none;
+            padding: 1rem 2rem;
+            font-size: 1.1rem;
+            font-weight: 800;
+            border-radius: var(--radius);
+            cursor: pointer;
+            width: 100%;
+            margin-top: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            text-transform: uppercase;
+            transition: all 0.2s;
+        }
+
+        .spin-btn:hover:not(:disabled) {
+            background: var(--primary-hover);
+            transform: translateY(-2px);
+        }
+
+        .spin-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /*
+          Grid de seleção de modos para a roleta:
+          Checkboxes em grid responsivo, cada um representando um modo.
+        */
+        .modes-grid-selection {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 0.75rem;
+        }
+
+        /*
+          Item de modo (checkbox estilizado):
+          Label clicável com fundo escuro e borda.
+        */
+        .mode-item-cb {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            padding: 0.75rem;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: all 0.2s;
+        }
+
+        .mode-item-cb:hover {
+            background: var(--surface-hover);
+        }
+
+        /*
+          Input checkbox dentro do item:
+          accent-color dourado para manter o tema.
+        */
+        .mode-item-cb input {
+            accent-color: var(--primary);
+            width: 16px;
+            height: 16px;
+        }
+
+        /*
+          ==========================================================
+          FILTROS DA ROLETA
+          Botão criar, grid de filtros, auto toggle, modal.
+          ==========================================================
+        */
+        .filters-section {
+            margin-bottom: 1.5rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .btn-criar-filtro {
+            background: var(--primary);
+            color: black;
+            border: none;
+            padding: 0.75rem 1.25rem;
+            border-radius: var(--radius);
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s;
+            width: 100%;
+            justify-content: center;
+            margin-bottom: 1rem;
+        }
+
+        .btn-criar-filtro:hover {
+            background: var(--primary-hover);
+        }
+
+        .filters-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .filter-item {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 0.65rem 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s;
+        }
+
+        .filter-item:hover {
+            border-color: var(--muted-foreground);
+        }
+
+        .filter-item input[type="checkbox"] {
+            accent-color: var(--primary);
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        .filter-nome {
+            flex: 1;
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: var(--foreground);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .filter-delay-label {
+            font-size: 0.7rem;
+            color: var(--muted-foreground);
+            flex-shrink: 0;
+        }
+
+        .filter-item.checked {
+            border-color: var(--primary);
+            background: rgba(234, 179, 8, 0.08);
+        }
+
+        .btn-filter-delete {
+            background: transparent;
+            border: none;
+            color: var(--muted-foreground);
+            cursor: pointer;
+            padding: 0.2rem;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+
+        .btn-filter-delete:hover {
+            color: var(--danger);
+            background: rgba(239, 68, 68, 0.1);
+        }
+
+        .btn-filter-edit {
+            background: transparent;
+            border: none;
+            color: var(--muted-foreground);
+            cursor: pointer;
+            padding: 0.2rem;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+
+        .btn-filter-edit:hover {
+            color: var(--primary);
+            background: rgba(212, 175, 55, 0.1);
+        }
+
+        .filter-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .filter-modal-overlay.hidden {
+            display: none;
+        }
+
+        .filter-modal {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 2rem;
+            width: 90%;
+            max-width: 560px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+        }
+
+        .filter-modal::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .filter-modal::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 3px;
+        }
+
+        .filter-modal-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 0.5rem;
+        }
+
+        .filter-modal-cat-title {
+            grid-column: 1 / -1;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--primary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-top: 0.5rem;
+            padding-top: 0.75rem;
+            border-top: 1px solid var(--border);
+        }
+
+        .filter-modal-cat-title:first-child {
+            margin-top: 0;
+            padding-top: 0;
+            border-top: none;
+        }
+
+        .filter-card-cb {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 0.75rem;
+            color: var(--foreground);
+            cursor: pointer;
+        }
+
+        .filter-card-cb input {
+            accent-color: var(--primary);
+            width: 14px;
+            height: 14px;
+        }
+
+        /*
+          ==========================================================
+          AÇÕES GLOBAIS
+          Botão "Esconder" (destrutivo) na sidebar.
+          ==========================================================
+        */
+        .btn-danger {
+            background: transparent;
+            border: 1px solid var(--danger);
+            color: var(--danger);
+            padding: 0.75rem;
+            border-radius: var(--radius);
+            cursor: pointer;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            font-weight: 600;
+            margin-top: 1rem;
+        }
+
+        .btn-danger:hover {
+            background: var(--danger);
+            color: white;
+        }
+
+        /*
+          ==========================================================
+          GRUPO DO BOTÃO ESCONDER + TIMER
+          Botão relógio aparece ao hover; popup de configuração.
+          ==========================================================
+        */
+        .btn-timer-icon {
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            margin-bottom: 6px;
+            background: rgba(24, 24, 27, 0.95);
+            border: 1px solid var(--border);
+            color: var(--muted-foreground);
+            padding: 0.5rem;
+            border-radius: var(--radius);
+            cursor: pointer;
+            opacity: 0;
+            visibility: hidden;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+            transition-delay: 5s;
+            z-index: 10;
+        }
+
+        .hide-btn-container:hover .btn-timer-icon,
+        .btn-timer-icon:hover {
+            opacity: 1;
+            visibility: visible;
+            transition-delay: 0s;
+        }
+
+        .btn-timer-icon:hover {
+            background: rgba(212, 175, 55, 0.1);
+            color: var(--primary);
+            border-color: var(--primary);
+        }
+
+        .timer-popup {
+            position: absolute;
+            bottom: calc(100% + 48px);
+            left: 0;
+            right: 0;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1rem;
+            z-index: 100;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+            animation: fadeIn 0.2s ease;
+        }
+
+        .timer-popup.hidden {
+            display: none;
+        }
+
+        .timer-popup-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.75rem;
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+
+        .timer-options {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.5rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .timer-option {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--foreground);
+            padding: 0.5rem;
+            border-radius: var(--radius);
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 0.875rem;
+            transition: all 0.2s ease;
+        }
+
+        .timer-option:hover {
+            background: var(--surface-hover);
+            border-color: var(--primary);
+        }
+
+        .timer-option.active {
+            background: rgba(212, 175, 55, 0.15);
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .timer-custom {
+            margin-bottom: 0.75rem;
+        }
+
+        .timer-custom-btn {
+            width: 100%;
+            background: transparent;
+            border: 1px dashed var(--border);
+            color: var(--muted-foreground);
+            padding: 0.5rem;
+            border-radius: var(--radius);
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 0.875rem;
+            transition: all 0.2s ease;
+        }
+
+        .timer-custom-btn:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+            background: rgba(212, 175, 55, 0.05);
+        }
+
+        .timer-custom-input-group {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .timer-custom-input-group.hidden {
+            display: none;
+        }
+
+        .timer-custom-input-group input {
+            flex: 1;
+            background: var(--background);
+            border: 1px solid var(--border);
+            color: var(--foreground);
+            padding: 0.5rem;
+            border-radius: var(--radius);
+            font-size: 0.875rem;
+            outline: none;
+        }
+
+        .timer-custom-input-group input:focus {
+            border-color: var(--primary);
+        }
+
+        .timer-custom-input-group button {
+            background: var(--primary);
+            border: none;
+            color: black;
+            padding: 0.5rem 1rem;
+            border-radius: var(--radius);
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+
+        .timer-custom-input-group button:hover {
+            background: var(--primary-hover);
+        }
+
+        .timer-active-indicator {
+            font-size: 0.8rem;
+            color: var(--muted-foreground);
+            margin-bottom: 0.5rem;
+            padding: 0.3rem 0;
+        }
+
+        .timer-clear-btn {
+            background: transparent;
+            border: 1px solid var(--danger);
+            color: var(--danger);
+            padding: 0.4rem;
+            border-radius: var(--radius);
+            cursor: pointer;
+            width: 100%;
+            font-size: 0.8rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .timer-clear-btn:hover {
+            background: var(--danger);
+            color: white;
+        }
+
+        /*
+          ==========================================================
+          DRAFT TAB (Sistema de Torneio)
+          Seção superior: roleta (esquerda) + controles (direita).
+          ==========================================================
+        */
+        .draft-top-section {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            /* Roleta + painel de controle */
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        /*
+          Caixa da roleta do draft:
+          Similar à roleta de modos, mas com borda e sombra extras.
+        */
+        .draft-wheel-box {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /*
+          Container da roleta do draft:
+          Proporção 1:1, tamanho máximo 400px.
+        */
+        .draft-wheel-container {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            aspect-ratio: 1 / 1;
+        }
+
+        /*
+          Canvas da roleta do draft:
+          Borda espessa e sombra para destaque visual.
+          Transição suave para animação de giro.
+        */
+        #draft-wheel-canvas {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 5px solid var(--border);
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+            transition: transform 2s cubic-bezier(0.15, 0, 0.15, 1);
+        }
+
+        /*
+          Ponteiro da roleta do draft (triângulo dourado).
+        */
+        .draft-wheel-pointer {
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 25px;
+            height: 25px;
+            background: var(--primary);
+            clip-path: polygon(50% 100%, 0 0, 100% 0);
+            z-index: 10;
+        }
+
+        /*
+          Controles do draft (painel direito):
+          Coluna flexível com cartões empilhados.
+        */
+        .draft-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        /*
+          Cartão genérico:
+          Usado nos controles do draft para agrupar seções.
+        */
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+        }
+
+        /*
+          Título do cartão:
+          Dourado, negrito, com ícone Lucide.
+        */
+        .card h2 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /*
+          Scrollbar customizada para a lista de equipes.
+        */
+        .teams-list::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .teams-list::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 3px;
+        }
+
+        /*
+          ==========================================================
+          ÁRVORE DE CHAVES (BRACKET) COM ZOOM E PAN
+          Sistema de dupla eliminação renderizado em colunas.
+          Inclui controles de zoom (+/-/reset) e arrasto (pan).
+          ==========================================================
+        */
+
+        /*
+          Wrapper da árvore:
+          Posição relativa para ancorar os controles de zoom.
+        */
+        .bracket-wrapper {
+            position: relative;
+            width: 100%;
+        }
+
+        /*
+          Controles de Zoom:
+          Posicionados absolutamente no canto superior direito.
+          Fundo semi-transparente com blur.
+        */
+        .zoom-controls {
+            position: absolute;
+            top: 1rem;
+            right: 1.5rem;
+            display: flex;
+            gap: 0.5rem;
+            z-index: 50;
+            background: rgba(24, 24, 27, 0.8);
+            backdrop-filter: blur(8px);
+            padding: 0.5rem;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        /*
+          Botões individuais de zoom.
+        */
+        .btn-zoom {
+            background: var(--background);
+            color: var(--foreground);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 0.5rem;
+            cursor: pointer;
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-zoom:hover {
+            background: var(--surface-hover);
+            color: var(--primary);
+        }
+
+        /*
+          Viewport (área de visualização das chaves):
+          Com scroll nativo (overflow: auto) e cursor grab para arrastar.
+          max-height: 80vh para não ocupar a tela toda no celular.
+        */
+        .bracket-viewport {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 2rem;
+            overflow: auto;
+            max-height: 80vh;
+            cursor: grab;
+            position: relative;
+        }
+
+        .bracket-viewport:active {
+            cursor: grabbing;
+        }
+
+        /*
+          Scrollbar customizada do viewport (Webkit).
+        */
+        .bracket-viewport::-webkit-scrollbar {
+            height: 8px;
+            width: 8px;
+        }
+
+        .bracket-viewport::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 4px;
+        }
+
+        /*
+          Conteúdo escalável:
+          transform-origin: top left para zoom manter o canto como referência.
+          min-width: 1000px evita que os blocos fiquem esmagados.
+        */
+        .bracket-scale-content {
+            transform-origin: top left;
+            transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+            min-width: 1000px;
+            padding-bottom: 2rem;
+        }
+
+        /*
+          Coluna de rodada:
+          Agrupa partidas verticalmente dentro de uma rodada.
+        */
+        .round-col {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        /*
+          Caixa de partida (match):
+          Largura fixa 220px, fundo escuro, sombra.
+        */
+        .match-box {
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            width: 220px;
+            background: var(--background);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        /*
+          Nome da partida (ex: "Quartas 1", "Semi 2"):
+          Faixa superior dentro da match-box.
+        */
+        .match-name {
+            background: var(--surface-hover);
+            font-size: 0.75rem;
+            padding: 4px 8px;
+            text-align: center;
+            color: #a1a1aa;
+            border-bottom: 1px solid var(--border);
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        /*
+          Slot de equipe:
+          Cada partida tem 2 slots (time 1 e time 2).
+          - clickable:hover: destaca verde se ambos os times existirem e sem vencedor
+          - winner: destaca dourado com borda esquerda
+          - can-undo:hover: mostra botão de desfazer (vermelho)
+        */
+        .team-slot {
+            padding: 0.75rem;
+            font-weight: 600;
+            font-size: 0.9rem;
+            border-bottom: 1px solid var(--border);
+            transition: 0.2s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+        }
+
+        .team-slot:last-child {
+            border-bottom: none;
+        }
+
+        .team-slot.clickable:hover {
+            background: rgba(74, 222, 128, 0.15);
+            cursor: pointer;
+        }
+
+        .team-slot.winner {
+            background: rgba(212, 175, 55, 0.1);
+            border-left: 3px solid var(--primary);
+        }
+
+        /*
+          Ações do slot (ícone check + botão desfazer).
+        */
+        .team-slot .slot-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .team-slot.winner.can-undo:hover {
+            background: rgba(239, 68, 68, 0.15);
+            border-left: 3px solid var(--danger);
+            cursor: pointer;
+        }
+
+        /*
+          Botão "Desfazer" (undo):
+          Aparece apenas ao passar o mouse sobre um vencedor.
+          Esconde o ícone de check simultaneamente.
+        */
+        .undo-btn {
+            display: none;
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--danger);
+            border: 1px solid var(--danger);
+            border-radius: 4px;
+            padding: 2px 4px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .undo-btn:hover {
+            background: var(--danger);
+            color: white;
+        }
+
+        .team-slot.winner.can-undo:hover .undo-btn {
+            display: flex;
+        }
+
+        .team-slot.winner.can-undo:hover .check-icon-winner {
+            display: none;
+        }
+
+        /*
+          Título de seção (chave superior / inferior):
+          Fonte Outfit, espaçamento de letras.
+        */
+        .section-title {
+            color: white;
+            margin-bottom: 1.5rem;
+            text-align: center;
+            font-family: 'Outfit';
+            letter-spacing: 1px;
+        }
+
+        /*
+          Botões de ação genéricos:
+          Usado para "Reiniciar", "Apagar", "Imprimir", etc.
+        */
+        .btn-action {
+            flex: 1;
+            padding: 0.75rem 0.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.85rem;
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.4rem;
+            border: none;
+        }
+
+        /*
+          Botão "Reiniciar" (laranja):
+          Mantém os nomes mas zera as chaves.
+        */
+        .btn-restart {
+            background: rgba(251, 146, 60, 0.1);
+            border: 1px dashed #fb923c;
+            color: #fb923c;
+        }
+
+        .btn-restart:hover {
+            background: rgba(251, 146, 60, 0.2);
+        }
+
+        /*
+          Botão "Apagar" (vermelho):
+          Remove todos os times e chaves.
+        */
+        .btn-delete {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px dashed #ef4444;
+            color: #ef4444;
+        }
+
+        .btn-delete:hover {
+            background: rgba(239, 68, 68, 0.2);
+        }
+
+
+        /*
+          ==========================================================
+          RESPONSIVO (max-width: 768px)
+          Adaptações para tablets e celulares.
+          Sidebar vira barra inferior fixa com botões compactos.
+          ==========================================================
+        */
+        @media (max-width: 768px) {
+
+            /*
+              Body: layout em coluna para empilhar os elementos.
+            */
+            body {
+                flex-direction: column;
+            }
+
+            /*
+              Sidebar fixa na parte inferior:
+              - position: fixed para ficar sempre visível
+              - padding-bottom extra para safe-area (iPhone X+)
+              - backdrop-filter: blur para efeito vidro fosco
+            */
+            aside {
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                width: 100%;
+                height: auto;
+                flex-direction: row;
+                padding: 0.5rem;
+                padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+                border-right: none;
+                border-top: 1px solid var(--border);
+                background: rgba(24, 24, 27, 0.95);
+                backdrop-filter: blur(10px);
+                z-index: 50;
+            }
+
+            /*
+              Oculta o brand (logo + título) em mobile.
+            */
+            .brand {
+                display: none;
+            }
+
+            /*
+              Botões de navegação em coluna (ícone em cima, texto embaixo).
+              Distribuídos igualmente com flex: 1.
+            */
+            .nav-btn {
+                flex-direction: column;
+                margin-bottom: 0;
+                padding: 0.5rem 0.25rem;
+                justify-content: center;
+                gap: 0.4rem;
+                font-size: 0.65rem;
+                font-weight: 600;
+                width: auto;
+                flex: 1;
+                border-radius: 8px;
+                text-align: center;
+                line-height: 1.1;
+                white-space: normal;
+            }
+
+            /*
+              Ícones menores e centralizados.
+            */
+            .nav-btn i {
+                width: 20px !important;
+                height: 20px !important;
+                margin: 0 auto;
+            }
+
+            /*
+              Container interno da sidebar vira flex row.
+            */
+            aside>div {
+                margin-top: 0 !important;
+                flex: 1;
+                display: flex;
+            }
+
+            /*
+              Botão "Esconder" adaptado para mobile:
+              Mesmo estilo compacto dos nav-btns.
+            */
+            .btn-danger {
+                margin-top: 0;
+                padding: 0.5rem 0.25rem;
+                font-size: 0.65rem;
+                font-weight: 600;
+                flex-direction: column;
+                gap: 0.4rem;
+                border: none;
+                background: transparent;
+                width: 100%;
+                height: 100%;
+                text-align: center;
+                line-height: 1.1;
+                white-space: normal;
+            }
+
+            .btn-danger:hover {
+                background: rgba(239, 68, 68, 0.1);
+                color: var(--danger);
+            }
+
+            .btn-danger i {
+                width: 20px !important;
+                height: 20px !important;
+                margin: 0 auto;
+            }
+
+            .btn-timer-icon {
+                position: absolute;
+                bottom: 100%;
+                left: 50%;
+                transform: translateX(-50%);
+                margin-bottom: 4px;
+                background: rgba(24, 24, 27, 0.95);
+                border: 1px solid var(--border);
+                color: var(--muted-foreground);
+                padding: 0.4rem;
+                border-radius: var(--radius);
+                cursor: pointer;
+                opacity: 0;
+                visibility: hidden;
+                align-items: center;
+                justify-content: center;
+                transition: opacity 0.3s ease, visibility 0.3s ease;
+                transition-delay: 5s;
+                z-index: 10;
+            }
+
+            .hide-btn-container:hover .btn-timer-icon,
+            .btn-timer-icon:hover {
+                opacity: 1;
+                visibility: visible;
+                transition-delay: 0s;
+            }
+
+            .btn-timer-icon:hover {
+                background: rgba(212, 175, 55, 0.1);
+                color: var(--primary);
+            }
+
+            .timer-popup {
+                bottom: calc(100% + 38px);
+                left: auto;
+                right: 0;
+                min-width: 200px;
+                max-width: 90vw;
+                font-size: 0.8rem;
+            }
+
+            .timer-options {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 0.3rem;
+            }
+
+            .timer-option {
+                padding: 0.4rem;
+                font-size: 0.75rem;
+            }
+
+            /*
+              Texto dos botões oculto por padrão, aparece apenas no botão ativo.
+            */
+            .nav-text {
+                display: none;
+            }
+
+            .nav-btn.active .nav-text {
+                display: block;
+                animation: fadeIn 0.3s ease;
+            }
+
+            /*
+              Main: padding inferior extra para não ficar atrás da sidebar fixa.
+            */
+            main {
+                padding: 1.5rem 1rem 6rem 1rem;
+            }
+
+            /*
+              Header em coluna (título em cima, status embaixo).
+            */
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+            }
+
+            /*
+              Roleta: coluna única em mobile.
+            */
+            .roleta-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .wheel-box {
+                padding: 1.5rem 1rem;
+            }
+
+            .spin-btn {
+                padding: 1rem;
+                font-size: 1rem;
+            }
+
+            /*
+              Draft seção superior: coluna única.
+            */
+            .draft-top-section {
+                grid-template-columns: 1fr;
+            }
+
+            .draft-wheel-box {
+                padding: 1.5rem 1rem;
+            }
+
+            .bracket-viewport {
+                padding: 1rem;
+            }
+        }
+
+        /*
+          ==========================================================
+          ESTILOS DE IMPRESSÃO
+          Usado para imprimir/gerar PDF somente das chaves do torneio.
+          ==========================================================
+        */
+        @media print {
+
+            /*
+              Garante que as cores sejam impressas.
+            */
+            body {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+                background-color: var(--surface);
+            }
+
+            /*
+              Oculta tudo exceto o wrapper das chaves.
+            */
+            body * {
+                visibility: hidden;
+            }
+
+            .bracket-wrapper,
+            .bracket-wrapper * {
+                visibility: visible;
+            }
+
+            /*
+              Wrapper ocupa a página toda.
+            */
+            .bracket-wrapper {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100vw;
+            }
+
+            /*
+              Viewport sem scroll, sem bordas, sem padding.
+            */
+            .bracket-viewport {
+                overflow: visible !important;
+                background: var(--surface) !important;
+                border: none !important;
+                padding: 0 !important;
+                max-height: none !important;
+            }
+
+            /*
+              Oculta controles de zoom, botão de imprimir, e botões de ação.
+            */
+            .zoom-controls,
+            #btn-print-bracket,
+            #btn-export-jpg,
+            #btn-sync-draft,
+            #btn-store-draft,
+            .undo-btn,
+            .check-icon-winner {
+                display: none !important;
+            }
+
+            /*
+              Escala o conteúdo para caber melhor em uma página A4.
+            */
+            .bracket-scale-content {
+                transform: scale(0.65) !important;
+                transform-origin: top left !important;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!--
+      ============================================================
+      SIDEBAR (barra lateral / mobile: barra inferior)
+      Contém:
+        - Brand: logo + "MLBB ADMIN"
+        - 4 botões de navegação (Manual, Roleta, Draft, Nova Carta)
+        - Botão "Esconder" (oculta overlay no Firebase)
+      ============================================================
+    -->
+    <aside>
+        <!-- Brand / Logo -->
+        <div class="brand">
+            <i data-lucide="layout-dashboard" style="width: 28px;"></i>
+            <h1 style="font-family: 'Outfit'; font-size: 1.2rem;">MLBB ADMIN</h1>
+        </div>
+
+        <!-- Botões de navegação das abas -->
+        <button class="nav-btn active" onclick="switchTab('manual')">
+            <i data-lucide="mouse-pointer-2"></i> <span class="nav-text">Manual</span>
+        </button>
+        <button class="nav-btn" onclick="switchTab('roleta')">
+            <i data-lucide="rotate-cw"></i> <span class="nav-text">Roleta</span>
+        </button>
+        <button class="nav-btn" onclick="switchTab('draft')">
+            <i data-lucide="users"></i> <span class="nav-text">Draft</span>
+        </button>
+        <button class="nav-btn" onclick="switchTab('add')">
+            <i data-lucide="plus-square"></i> <span class="nav-text">Nova Carta</span>
+        </button>
+
+        <!-- Botão "Esconder" + Timer - empurrado para o fim da sidebar -->
+        <div style="margin-top: auto; position: relative;" class="hide-btn-container">
+            <button id="btn-hide-global" class="btn-danger">
+                <i data-lucide="eye-off"></i> <span class="nav-text">Esconder</span>
+            </button>
+            <button id="btn-timer-config" class="btn-timer-icon" title="Auto-ocultar após...">
+                <i data-lucide="clock"></i>
+            </button>
+            <!-- Popup de configuração do timer -->
+            <div id="timer-popup" class="timer-popup hidden">
+                <div class="timer-popup-header">
+                    <i data-lucide="clock" style="width:16px;"></i> Auto-ocultar
+                </div>
+                <div class="timer-options">
+                    <button class="timer-option" data-seconds="5">5s</button>
+                    <button class="timer-option" data-seconds="10">10s</button>
+                    <button class="timer-option" data-seconds="15">15s</button>
+                    <button class="timer-option" data-seconds="30">30s</button>
+                    <button class="timer-option" data-seconds="60">60s</button>
+                    <button class="timer-option" data-seconds="0">Nunca</button>
+                </div>
+                <div class="timer-custom">
+                    <button id="btn-timer-custom" class="timer-custom-btn">Custom</button>
+                    <div id="timer-custom-input-group" class="timer-custom-input-group hidden">
+                        <input type="number" id="timer-custom-input" min="1" max="999" placeholder="Custom (s)">
+                        <button id="btn-timer-custom-set">OK</button>
+                    </div>
+                </div>
+                <div class="timer-active-indicator" id="timer-active-indicator">
+                    <span>⏱ Ativo: <span id="timer-current-value">Nunca</span></span>
+                </div>
+                <button id="btn-timer-clear" class="timer-clear-btn">Limpar</button>
+            </div>
+        </div>
+    </aside>
+
+    <!--
+      ============================================================
+      MAIN (conteúdo principal)
+      Header com título + status, e 4 abas (tab-content).
+      ============================================================
+    -->
+    <main>
+        <!--
+          Header: título da aba atual + indicador de overlay.
+        -->
+        <div class="header">
+            <h2 id="tab-title" style="font-size: 1.5rem; font-family: 'Outfit';">Seleção Manual</h2>
+            <!-- Status pill: mostra se overlay está visível ou oculto -->
+            <div class="status-pill">
+                <div id="status-dot" class="dot"></div>
+                <span id="status-text">Overlay Oculto</span>
+            </div>
+        </div>
+
+        <!--
+          ==========================================================
+          TAB: MANUAL (Seleção Manual)
+          Grid de categorias com cartas/modos.
+          Cada botão de modo envia ao Firebase para exibir no overlay.
+          ==========================================================
+        -->
+        <div id="tab-manual" class="tab-content active">
+            <div id="manual-container" class="manual-grid">
+                <!-- Preenchido dinamicamente via JS (renderManualCards) -->
+            </div>
+        </div>
+
+        <!--
+          ==========================================================
+          TAB: NOVA CARTA (Criar Carta Customizada)
+          Formulário para criar cartas personalizadas que são
+          salvas no Firebase (nó "custom_cards").
+          ==========================================================
+        -->
+        <div id="tab-add" class="tab-content">
+            <div class="card" style="max-width: 600px; margin: 0 auto;">
+                <h3
+                    style="color: var(--primary); margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem; font-family: 'Outfit';">
+                    <i data-lucide="plus-circle"></i> Criar Carta Customizada
+                </h3>
+                <form id="add-card-form" style="display: flex; flex-direction: column; gap: 1rem;">
+                    <!-- Campo: Nome da Carta -->
+                    <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                        <label style="font-size: 0.85rem; color: var(--muted-foreground); font-weight: 500;">Nome da
+                            Carta</label>
+                        <input type="text" id="new-card-name" required placeholder="Ex: Modo Espelho"
+                            style="padding: 0.85rem; border-radius: 8px; border: 1px solid var(--border); background: var(--background); color: var(--foreground); outline: none;">
+                    </div>
+                    <!-- Campo: Nome do arquivo de imagem -->
+                    <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                        <label style="font-size: 0.85rem; color: var(--muted-foreground); font-weight: 500;">Nome do
+                            Arquivo (em assets/)</label>
+                        <input type="text" id="new-card-img" required placeholder="Ex: CARTA_ESPELHO.jpeg"
+                            style="padding: 0.85rem; border-radius: 8px; border: 1px solid var(--border); background: var(--background); color: var(--foreground); outline: none;">
+                    </div>
+                    <!-- Campo: Categoria (select) -->
+                    <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                        <label
+                            style="font-size: 0.85rem; color: var(--muted-foreground); font-weight: 500;">Categoria</label>
+                        <select id="new-card-cat"
+                            style="padding: 0.85rem; border-radius: 8px; border: 1px solid var(--border); background: var(--background); color: var(--foreground); outline: none;">
+                            <option value="Especiais">Especiais</option>
+                            <option value="Classes">Classes</option>
+                            <option value="Lanes">Lanes</option>
+                            <option value="Proibições">Proibições</option>
+                            <option value="Custom">Customizados</option>
+                        </select>
+                    </div>
+                    <!-- Campo: Cor personalizada (color picker) -->
+                    <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                        <label style="font-size: 0.85rem; color: var(--muted-foreground); font-weight: 500;">Cor Base
+                            (Roleta e Textos)</label>
+                        <input type="color" id="new-card-color" value="#d4af37"
+                            style="height: 50px; width: 100%; border-radius: 8px; border: 1px solid var(--border); background: var(--background); cursor: pointer;">
+                    </div>
+                    <!-- Botão de submit -->
+                    <button type="submit"
+                        style="background: var(--primary); color: black; border: none; padding: 1rem; border-radius: 8px; font-weight: 700; cursor: pointer; transition: 0.2s; margin-top: 1rem; font-size: 1rem;">
+                        Salvar Nova Carta
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!--
+          ==========================================================
+          TAB: ROLETA (Sorteio Aleatório de Modos)
+          Layout em duas colunas:
+            - Esquerda: canvas da roleta + botão girar + resultado
+            - Direita : grid de checkboxes para selecionar modos ativos
+          Sincroniza com Firebase (roleta_command, roleta_config).
+          ==========================================================
+        -->
+        <div id="tab-roleta" class="tab-content">
+            <div class="roleta-layout">
+                <!-- Coluna esquerda: roleta visual -->
+                <div class="wheel-box">
+                    <div class="wheel-container">
+                        <!-- Ponteiro fixo no topo -->
+                        <div class="wheel-pointer"></div>
+                        <!-- Canvas onde a roleta é desenhada via JS -->
+                        <canvas id="wheel-canvas" width="1000" height="1000"></canvas>
+                    </div>
+                    <button id="trigger-spin" class="spin-btn">Girar Roleta</button>
+                    <!-- Exibição do último resultado sorteado -->
+                    <div style="margin-top: 1.5rem; text-align: center;">
+                        <span style="color: var(--muted-foreground); font-size: 0.8rem;">Último Resultado:</span>
+                        <div id="winner-name" style="font-size: 1.5rem; font-weight: 800; color: var(--primary);">---
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Coluna direita: seleção de modos ativos -->
+                <div class="selection-box">
+                    <!-- Seção de Filtros -->
+                    <div class="filters-section">
+                        <button id="btn-criar-filtro" class="btn-criar-filtro">
+                            <i data-lucide="plus"></i> Criar Filtro
+                        </button>
+                        <div id="filters-list" class="filters-grid"></div>
+                    </div>
+                    <h3 class="cat-title" style="margin-bottom: 1.5rem;"><i data-lucide="settings-2"></i> Modos Ativos
+                        na Roleta</h3>
+                    <div id="roleta-selection-grid" class="modes-grid-selection">
+                    </div>
+                    <!-- Modal para criar/editar filtro -->
+                    <div id="filter-modal" class="filter-modal-overlay hidden">
+                        <div class="filter-modal">
+                            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+                                <h3 style="color:var(--primary);font-family:'Outfit';display:flex;align-items:center;gap:0.5rem;">
+                                    <i data-lucide="filter"></i> Criar Filtro
+                                </h3>
+                                <button id="btn-close-modal" style="background:none;border:none;color:var(--muted-foreground);cursor:pointer;font-size:1.5rem;line-height:1;">&times;</button>
+                            </div>
+                            <div style="margin-bottom:1rem;">
+                                <label style="display:block;font-size:0.85rem;color:var(--muted-foreground);font-weight:500;margin-bottom:0.5rem;">Nome do Filtro</label>
+                                <input type="text" id="filter-nome-input" placeholder="Ex: Filtro X1" style="width:100%;padding:0.85rem;border-radius:8px;border:1px solid var(--border);background:var(--background);color:var(--foreground);outline:none;">
+                            </div>
+                            <div id="filter-modal-cards" class="filter-modal-grid"></div>
+                            <div style="margin:1rem 0;">
+                                <label style="display:block;font-size:0.85rem;color:var(--muted-foreground);font-weight:500;margin-bottom:0.5rem;">Delay entre giros (segundos)</label>
+                                <input type="number" id="filter-delay-input" value="20" min="1" max="999" style="width:100px;padding:0.5rem;border-radius:8px;border:1px solid var(--border);background:var(--background);color:var(--foreground);outline:none;">
+                            </div>
+                            <button id="btn-salvar-filtro" style="width:100%;background:var(--primary);color:black;border:none;padding:1rem;border-radius:8px;font-weight:700;cursor:pointer;font-size:1rem;">Salvar Filtro</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!--
+          ==========================================================
+          TAB: DRAFT (Torneio com Chaves)
+          Sistema de dupla eliminação com:
+            - Roleta para sortear equipes
+            - Adição de equipes e BYEs
+            - Chave superior e inferior
+            - Zoom e pan na árvore
+            - Botões Instantâneo e Automático
+          ==========================================================
+        -->
+        <div id="tab-draft" class="tab-content">
+            <!-- Seção superior: roleta + controles -->
+            <div class="draft-top-section">
+                <!-- Roleta para sorteio de equipes -->
+                <div class="draft-wheel-box">
+                    <div class="draft-wheel-container">
+                        <div class="draft-wheel-pointer"></div>
+                        <canvas id="draft-wheel-canvas" width="1000" height="1000"></canvas>
+                    </div>
+                    <div style="margin-top: 1.5rem; text-align: center;">
+                        <span style="color: var(--muted-foreground); font-size: 0.8rem;">Sorteado:</span>
+                        <div id="draft-winner-name" style="font-size: 1.5rem; font-weight: 800; color: var(--primary);">
+                            ---</div>
+                    </div>
+                </div>
+
+                <!-- Painel de controles do draft -->
+                <div class="draft-controls">
+                    <!-- Cartão: Adicionar Equipe -->
+                    <div class="card">
+                        <h2><i data-lucide="users"></i> Adicionar Equipe</h2>
+                        <!-- Input + botões Add e BYE -->
+                        <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+                            <input type="text" id="draft-team-input" placeholder="Nome da equipe/jogador..."
+                                style="flex: 1; padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border); background: var(--background); color: var(--foreground); outline: none;">
+                            <button type="button" id="btn-add-team"
+                                style="background: var(--surface-hover); color: var(--foreground); border: 1px solid var(--border); padding: 0 1rem; border-radius: 8px; cursor: pointer; font-weight: 600; transition: 0.2s;">Add</button>
+                            <button type="button" id="btn-add-bye"
+                                style="background: rgba(82, 82, 91, 0.2); color: #a1a1aa; border: 1px dashed #52525b; padding: 0 0.5rem; border-radius: 8px; cursor: pointer; transition: 0.2s;"
+                                title="Adicionar vaga BYE (Passa Direto)">+ BYE</button>
+                        </div>
+                        <!-- Lista de equipes na pool -->
+                        <div id="teams-container" class="teams-list"
+                            style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 200px; overflow-y: auto; padding-right: 0.5rem;">
+                            <div style="color: #71717a; font-size: 0.85rem; text-align: center;">Vazio</div>
+                        </div>
+                        <!-- Botões Sincronizar e Armazenar -->
+                        <div style="display: flex; gap: 0.5rem; margin-top: 0.75rem;">
+                            <button type="button" id="btn-sync-draft" class="btn-action"
+                                style="flex:1; background: rgba(168,85,247,0.1); border:1px dashed #a855f7; color:#a855f7; padding:0.6rem; font-size:0.85rem; border-radius:8px; cursor:pointer; font-weight:600; display:flex; align-items:center; justify-content:center; gap:0.4rem;"
+                                title="Salvar draft no Firebase"><i data-lucide="cloud" style="width:16px;"></i> Sincronizar</button>
+                            <button type="button" id="btn-store-draft" class="btn-action"
+                                style="flex:1; background: rgba(251,191,36,0.1); border:1px dashed #fbbf24; color:#fbbf24; padding:0.6rem; font-size:0.85rem; border-radius:8px; cursor:pointer; font-weight:600; display:flex; align-items:center; justify-content:center; gap:0.4rem;"
+                                title="Restaurar draft do Firebase"><i data-lucide="download-cloud" style="width:16px;"></i> Armazenar</button>
+                        </div>
+                        <!-- Botões Reiniciar e Apagar -->
+                        <div style="display: flex; gap: 0.5rem; margin-top: 0.75rem;">
+                            <button type="button" id="btn-restart-tourney" class="btn-action btn-restart"
+                                title="Mantém os nomes, mas zera as chaves">
+                                <i data-lucide="rotate-ccw" style="width: 16px;"></i> Reiniciar
+                            </button>
+                            <button type="button" id="btn-clear-all" class="btn-action btn-delete"
+                                title="Apaga todos os nomes e as chaves">
+                                <i data-lucide="trash-2" style="width: 16px;"></i> Apagar
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Cartão: Ação (sorteio e tamanho da chave) -->
+                    <div class="card">
+                        <h2><i data-lucide="zap"></i> Ação</h2>
+
+                        <!-- Seletor de tamanho da chave (4, 8, 16) -->
+                        <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem; align-items: center;">
+                            <label
+                                style="font-size: 0.85rem; color: var(--muted-foreground); font-weight: 500;">Tamanho:</label>
+                            <select id="bracket-size-select"
+                                style="flex: 1; padding: 0.5rem; border-radius: 6px; border: 1px solid var(--border); background: var(--background); color: var(--foreground); outline: none;">
+                                <option value="4">4 Equipes</option>
+                                <option value="8" selected>8 Equipes</option>
+                                <option value="16">16 Equipes</option>
+                            </select>
+                        </div>
+
+                        <!-- Botão principal: Sortear Vaga (gira a roleta) -->
+                        <button id="draft-trigger-spin" class="spin-btn" disabled>
+                            <i data-lucide="rotate-cw"></i> Sortear Vaga
+                        </button>
+
+                        <!-- Botões auxiliares: Auto e Instantâneo -->
+                        <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                            <button type="button" id="btn-auto-draft" class="btn-action" disabled
+                                style="flex: 1; background: rgba(168, 85, 247, 0.1); border: 1px dashed #a855f7; color: #a855f7; border-radius: 8px; padding: 0.5rem; cursor: pointer; transition: 0.2s;">
+                                <i data-lucide="bot" style="width: 16px;"></i> Auto
+                            </button>
+                            <button type="button" id="btn-instant-draft" class="btn-action" disabled
+                                style="flex: 1; background: rgba(59, 130, 246, 0.1); border: 1px dashed #3b82f6; color: #3b82f6; border-radius: 8px; padding: 0.5rem; cursor: pointer; transition: 0.2s;">
+                                <i data-lucide="zap" style="width: 16px;"></i> Instant.
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!--
+              ============================================================
+              BRACKET WRAPPER (Árvore de Chaves)
+              Controles de zoom no canto superior direito + viewport.
+              Conteúdo gerado dinamicamente via JS (renderBracket).
+              ============================================================
+            -->
+            <section class="bracket-wrapper">
+
+                <!-- Controles de Zoom (+ / reset / -) -->
+                <div class="zoom-controls">
+                    <button class="btn-zoom" id="btn-zoom-out" title="Afastar (-)"><i data-lucide="zoom-out"
+                            style="width: 20px;"></i></button>
+                    <button class="btn-zoom" id="btn-zoom-reset" title="Restaurar Padrão"><i data-lucide="maximize"
+                            style="width: 20px;"></i></button>
+                    <button class="btn-zoom" id="btn-zoom-in" title="Aproximar (+)"><i data-lucide="zoom-in"
+                            style="width: 20px;"></i></button>
+                </div>
+
+                <!-- Viewport: área com scroll e arrasto (pan) -->
+                <div class="bracket-viewport" id="bracket-viewport">
+
+                    <!-- Conteúdo escalável (zoom aplicado via transform: scale) -->
+                    <div class="bracket-scale-content" id="bracket-content">
+                        <!-- Preenchido via JS (renderBracketStructure) -->
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!--
+      ============================================================
+      SCRIPT PRINCIPAL (ES Module)
+      Importa Firebase, define dados dos modos, lógica de abas,
+      renderização manual, roleta, draft, e comunicação com overlay.
+      ============================================================
+    -->
+    <script type="module">
+        // Importa funções do Firebase (configurado em firebase-config.js)
+        import { db, ref, set, onValue, remove, get } from './firebase-config.js';
+
+        /*
+          ==========================================================
+          BANCO DE DADOS DE MODOS (cartas padrão)
+          Cada modo tem: id, nome, categoria, cor, nome do arquivo
+          de imagem e ícone Lucide associado.
+          ==========================================================
+        */
+        const defaultModosData = [
+            /*
+              Categoria: Especiais
+              Modos especiais/aleatórios que não se encaixam em classes/lanes.
+            */
+            { id: 'bot', nome: 'Substituído por Bot', cat: 'Especiais', color: '#f87171', img: 'CARTA_DO_ROBO-substituido_por_boot.jpeg', icon: 'bot' },
+            { id: 'impostor', nome: 'Impostor', cat: 'Especiais', color: '#fb923c', img: 'DEIXA_QUE_EU_ESCOLHO-impostor.jpeg', icon: 'user-x' },
+            { id: 'capitao', nome: 'Capitão Escolhe', cat: 'Especiais', color: '#fbbf24', img: 'deixa_que_eu_escolho.jpeg', icon: 'crown' },
+
+            /*
+              Categoria: Classes
+              Restringem o time a uma única classe de herói.
+            */
+            { id: 'apenas-magos', nome: 'Apenas Magos', cat: 'Classes', color: '#818cf8', img: 'APENAS_UNICO(A)-apenas-magos.jpeg', icon: 'wand-2' },
+            { id: 'apenas-suporte', nome: 'Apenas Suporte', cat: 'Classes', color: '#f472b6', img: 'APENAS_UNICO(A)-apenas-suporte.jpeg', icon: 'heart-handshake' },
+            { id: 'apenas-atirador', nome: 'Apenas Atirador', cat: 'Classes', color: '#4ade80', img: 'APENAS_UNICO(A)-apenas_atirador.jpeg', icon: 'crosshair' },
+            { id: 'apenas-assassino', nome: 'Apenas Assassino', cat: 'Classes', color: '#60a5fa', img: 'APENAS_UNICO(A)-apenas_assassino.jpeg', icon: 'sparkles' },
+            { id: 'apenas-tank', nome: 'Apenas Tank', cat: 'Classes', color: '#9ca3af', img: 'APENAS_UNICO(A)-apenas_tank.jpeg', icon: 'shield' },
+
+            /*
+              Categoria: Lanes
+              Determinam em qual lane o time deve jogar.
+            */
+            { id: 'lane-mid', nome: 'Lane Mid', cat: 'Lanes', color: '#c084fc', img: 'APENAS_UNICO(A)-lane_mid.jpeg', icon: 'map' },
+            { id: 'lane-ouro', nome: 'Lane Ouro', cat: 'Lanes', color: '#fbbf24', img: 'APENAS_UNICO(A)-lane_ouro.jpeg', icon: 'coins' },
+            { id: 'lane-xp', nome: 'Lane XP', cat: 'Lanes', color: '#f87171', img: 'APENAS_UNICO(A)-lane_xp.jpeg', icon: 'swords' },
+
+            /*
+              Categoria: Proibições
+              Impedem o uso de certos feitiços, lanes ou mecânicas.
+            */
+            { id: 'proibido-executar', nome: 'Proibido Executar', cat: 'Proibições', color: '#ef4444', img: 'EU_PROIBO-feitiço-executar.jpeg', icon: 'ban' },
+            { id: 'proibido-petrificar', nome: 'Proibido Petrificar', cat: 'Proibições', color: '#ef4444', img: 'EU_PROIBO-feitiço-petrificar.jpeg', icon: 'ban' },
+            { id: 'proibido-smite', nome: 'Proibido Smite', cat: 'Proibições', color: '#ef4444', img: 'EU_PROIBO-feitiço-smite.jpeg', icon: 'ban' },
+            { id: 'proibido-flash', nome: 'Proibido Flash', cat: 'Proibições', color: '#ef4444', img: 'EU_PROIBO-feito-flash.jpeg', icon: 'ban' },
+            { id: 'mid-bloqueada', nome: 'Mid Bloqueada', cat: 'Lanes', color: '#4b5563', img: 'EU_PROIBO-lane_mid_bloqueada.jpeg', icon: 'lock' },
+            { id: 'ouro-bloqueada', nome: 'Ouro Bloqueada', cat: 'Lanes', color: '#4b5563', img: 'EU_PROIBO-lane_ouro.jpeg', icon: 'lock' },
+            { id: 'xp-bloqueada', nome: 'XP Bloqueada', cat: 'Lanes', color: '#4b5563', img: 'EU_PROIBO-lane_xp.jpeg', icon: 'lock' },
+            { id: 'lord-proibido', nome: 'Lord Proibido', cat: 'Proibições', color: '#7c2d12', img: 'EU_PROIBO-lord.jpeg', icon: 'skull' },
+            { id: 'suportes-banidos', nome: 'Suportes Banidos', cat: 'Proibições', color: '#991b1b', img: 'EU_PROIBO-suportes_banidos.jpeg', icon: 'user-minus' },
+            { id: 'tanks-banidos', nome: 'Tanks Banidos', cat: 'Proibições', color: '#991b1b', img: 'EU_PROIBO-tanks_banidos.jpeg', icon: 'user-minus' },
+            { id: 'sem-comunicacao', nome: 'Sem Comunicação', cat: 'Proibições', color: '#ef4444', img: 'EU_PROIBO-comunicação.jpeg', icon: 'mic-off' }
+        ];
+
+        /*
+          Modos excluídos do sistema de filtros e sorteio.
+          Survival e Mirror não devem aparecer em nenhuma lógica.
+        */
+        const EXCLUDED_MODOS = ['survival', 'mirror', 'modo-espelho'];
+
+        /*
+          Arrays para gerenciar modos:
+          - customModosData: cartas criadas pelo usuário (vindas do Firebase)
+          - fullModosData: junção de defaultModosData + customModosData
+        */
+        let customModosData = [];
+        let fullModosData = [...defaultModosData];
+
+        /*
+          Mapa de ícones Lucide para cada categoria.
+          Usado no título dos cartões da seleção manual.
+        */
+        const catIcons = { 'Especiais': 'star', 'Classes': 'swords', 'Lanes': 'map', 'Proibições': 'shield-alert', 'Custom': 'layers' };
+
+        /*
+          activeRoletaModos: modos atualmente selecionados para aparecer na roleta.
+          isSpinning: trava para evitar múltiplos giros simultâneos.
+        */
+        let activeRoletaModos = [...fullModosData];
+        let isSpinning = false;
+
+        /*
+          Variáveis do sistema de filtros:
+          - roletaFiltrosData: filtros carregados do Firebase
+          - isAutoChainActive: se está em modo sequência automática
+          - autoChainFilters: lista de filtros na sequência atual
+          - autoChainIndex: índice atual na sequência
+        */
+        let roletaFiltrosData = [];
+        let isAutoChainActive = false;
+        let autoChainFilters = [];
+        let autoChainIndex = 0;
+        let editandoFiltroId = null;
+
+        /*
+          ==========================================================
+          SWITCH TAB (Troca de Abas)
+          Atualiza classes, título, e dispara renderizações específicas.
+          ==========================================================
+        */
+        window.switchTab = (tab) => {
+            // Oculta todos os conteúdos e desativa todos os botões
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+
+            // Ativa a aba selecionada
+            document.getElementById(`tab-${tab}`).classList.add('active');
+            event.currentTarget.classList.add('active');
+
+            // Mapa de títulos para cada aba
+            const titles = {
+                'manual': 'Seleção Manual',
+                'roleta': 'Roleta Sincronizada',
+                'draft': 'Draft MLBB',
+                'add': 'Criar Nova Carta'
+            };
+            document.getElementById('tab-title').innerText = titles[tab] || 'Dashboard';
+
+            // Renderiza componentes específicos ao trocar para roleta/draft
+            if (tab === 'roleta') drawWheel();
+            if (tab === 'draft') {
+                drawDraftWheel();
+                renderBracket();
+            }
+        };
+
+        /*
+          ==========================================================
+          RENDER MANUAL CARDS (Seleção Manual)
+          Renderiza grid de categorias com botões de modo.
+          Cada categoria vira um cartão, cada modo vira um botão.
+          ==========================================================
+        */
+        const manualContainer = document.getElementById('manual-container');
+
+        function renderManualCards() {
+            // Limpa o container
+            manualContainer.innerHTML = '';
+
+            // Obtém lista única de categorias a partir dos modos
+            const cats = [...new Set(fullModosData.map(m => m.cat))];
+
+            // Para cada categoria, cria um cartão
+            cats.forEach(cat => {
+                const card = document.createElement('div');
+                card.className = 'cat-card';
+                card.innerHTML = `<h3 class="cat-title"><i data-lucide="${catIcons[cat] || 'package'}"></i> ${cat}</h3>`;
+
+                // Filtra modos da categoria atual e cria botões
+                fullModosData.filter(m => m.cat === cat).forEach(modo => {
+                    const btn = document.createElement('button');
+                    btn.className = 'mode-btn';
+                    btn.id = `manual-${modo.id}`;
+
+                    // Verifica se é um card customizado (prefixo "custom_")
+                    // Se for, adiciona botão de deletar (lixeira) ao lado do nome
+                    const isCustom = modo.id.startsWith('custom_');
+                    const deleteHtml = isCustom ? `<span class="delete-card-btn" style="color:var(--danger); cursor:pointer; margin-left:auto; padding: 2px;" data-id="${modo.id}" title="Remover"><i data-lucide="trash-2" style="width:14px; height:14px;"></i></span>` : '';
+
+                    btn.innerHTML = `
+                        <div style="display:flex; align-items:center; gap:0.5rem; flex:1;" onclick="selectCard('${modo.id}', '${modo.nome}', '${modo.img}')">
+                            <i data-lucide="${modo.icon || 'circle'}" style="width:14px; opacity:0.6;"></i>
+                            <span>${modo.nome}</span>
+                        </div>
+                        ${deleteHtml}
+                        <i data-lucide="check" class="check-icon" style="width:14px;"></i>
+                    `;
+                    card.appendChild(btn);
+                });
+                manualContainer.appendChild(card);
+            });
+
+            // Adiciona evento de clique aos botões de deletar cartas customizadas
+            document.querySelectorAll('.delete-card-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation(); // Impede que o clique selecione a carta
+                    const idToRemove = e.currentTarget.getAttribute('data-id');
+                    if (confirm('Tem certeza que deseja excluir esta carta?')) {
+                        // Remove do Firebase
+                        set(ref(db, 'custom_cards/' + idToRemove), null);
+                        // Se a carta estava ativa na roleta, remove também da config
+                        const cb = document.querySelector(`.roleta-cb[value="${idToRemove}"]`);
+                        if (cb && cb.checked) {
+                            const newActiveIds = activeRoletaModos.filter(m => m.id !== idToRemove).map(m => m.id);
+                            set(ref(db, 'roleta_config/active_modes'), newActiveIds);
+                        }
+                    }
+                });
+            });
+
+            // Atualiza ícones Lucide após inserir novo HTML
+            if (window.lucide) window.lucide.createIcons();
+        }
+
+        /*
+          ==========================================================
+          SELECT CARD (Selecionar Carta Manualmente)
+          Envia os dados da carta selecionada para o Firebase (nó "showcase"),
+          o que faz o overlay externo exibir a carta.
+          ==========================================================
+        */
+        window.selectCard = function (id, nome, img) {
+            set(ref(db, 'showcase'), {
+                modo_id: id,
+                modo_atual: nome,
+                imagem_url: 'assets/' + img,
+                status_exibicao: 'visivel',
+                auto_ocultar_em: window.autoHideSeconds || null
+            });
+        };
+
+        /*
+          ==========================================================
+          FIREBASE LISTENER: CUSTOM CARDS
+          Escuta o nó "custom_cards" no Realtime Database.
+          Quando cartas são adicionadas/removidas, atualiza os arrays
+          e re-renderiza a interface.
+          ==========================================================
+        */
+        onValue(ref(db, 'custom_cards'), (snapshot) => {
+            const data = snapshot.val();
+            // Converte objeto Firebase em array (ou array vazio se null)
+            customModosData = data ? Object.values(data) : [];
+            // Junta modos padrão + customizados
+            fullModosData = [...defaultModosData, ...customModosData];
+
+            // Re-sincroniza a roleta com os modos ativos salvos no Firebase
+            onValue(ref(db, 'roleta_config/active_modes'), (snapActive) => {
+                const ids = snapActive.val();
+                // Filtra fullModosData para manter apenas os IDs ativos
+                activeRoletaModos = ids ? fullModosData.filter(m => ids.includes(m.id)) : [...fullModosData];
+                // Atualiza checkboxes para refletir o estado salvo
+                document.querySelectorAll('.roleta-cb').forEach(cb => cb.checked = ids ? ids.includes(cb.value) : true);
+                drawWheel();
+            }, { onlyOnce: true }); // onlyOnce para não ficar em loop com o listener abaixo
+
+            // Re-renderiza interface manual, grid da roleta e modal de filtros
+            renderManualCards();
+            renderRoletaGrid();
+            renderFilterModalCards();
+        });
+
+        /*
+          ==========================================================
+          ADD CUSTOM CARD (Criar Nova Carta)
+          Captura o submit do formulário e salva a nova carta no Firebase.
+          ==========================================================
+        */
+        document.getElementById('add-card-form').addEventListener('submit', (e) => {
+            e.preventDefault(); // Previne reload da página
+
+            // Obtém valores dos campos
+            const name = document.getElementById('new-card-name').value.trim();
+            const img = document.getElementById('new-card-img').value.trim();
+            const cat = document.getElementById('new-card-cat').value;
+            const color = document.getElementById('new-card-color').value;
+
+            // Validação básica
+            if (!name || !img) return;
+
+            // Gera ID único baseado em timestamp
+            const cardId = 'custom_' + Date.now();
+            const newCard = {
+                id: cardId,
+                nome: name,
+                cat: cat,
+                color: color,
+                img: img,
+                icon: 'star' // Ícone padrão para cartas customizadas
+            };
+
+            // Salva no Firebase
+            set(ref(db, 'custom_cards/' + cardId), newCard).then(() => {
+                // Ativa a nova carta na roleta por padrão
+                const newActiveIds = [...activeRoletaModos.map(m => m.id), cardId];
+                set(ref(db, 'roleta_config/active_modes'), newActiveIds);
+
+                // Reseta o formulário para valores padrão
+                document.getElementById('add-card-form').reset();
+                document.getElementById('new-card-color').value = '#d4af37';
+
+                alert('Carta adicionada com sucesso! Você pode visualizá-la na aba Manual.');
+                switchTab('manual'); // Volta para a aba manual
+            }).catch(err => {
+                alert('Erro ao salvar no Firebase: ' + err.message);
+            });
+        });
+
+        /*
+          ==========================================================
+          ROLETA (WHEEL) - LÓGICA DE DESENHO E GIRO
+          Canvas para desenhar a roleta com fatias proporcionais.
+          ==========================================================
+        */
+        const canvas = document.getElementById('wheel-canvas');
+        const ctx = canvas.getContext('2d');
+
+        /*
+          drawWheel: desenha a roleta no canvas.
+          Cada modo ativo vira uma fatia alternando cores de fundo
+          (#18181b / #222226) com o texto na cor do modo.
+        */
+        function drawWheel() {
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const radius = canvas.width / 2 - 10;
+
+            // Se não há modos ativos, limpa o canvas e sai
+            if (activeRoletaModos.length === 0) { ctx.clearRect(0, 0, canvas.width, canvas.height); return; }
+
+            const sliceAngle = (2 * Math.PI) / activeRoletaModos.length;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Desenha cada fatia
+            activeRoletaModos.forEach((modo, i) => {
+                const angle = i * sliceAngle;
+                ctx.beginPath();
+                ctx.moveTo(centerX, centerY);
+                ctx.arc(centerX, centerY, radius, angle, angle + sliceAngle);
+                ctx.fillStyle = i % 2 === 0 ? '#18181b' : '#222226'; // Alterna cores
+                ctx.fill();
+
+                // Desenha o texto rotacionado no centro da fatia
+                ctx.save();
+                ctx.translate(centerX, centerY);
+                ctx.rotate(angle + sliceAngle / 2);
+                ctx.textAlign = 'right';
+                ctx.fillStyle = modo.color || '#fff';
+                ctx.font = 'bold 30px Inter';
+                ctx.fillText(modo.nome, radius - 40, 10);
+                ctx.restore();
+            });
+        }
+
+        /*
+          spinLocally: anima o giro da roleta para um modo específico.
+          Calcula a rotação necessária para que o modo alvo pare
+          no ponteiro (topo, 270 graus).
+        */
+        function spinLocally(targetId) {
+            if (isSpinning) return; // Evita giros simultâneos
+            isSpinning = true;
+
+            // Encontra o índice do modo alvo
+            const idx = activeRoletaModos.findIndex(m => m.id === targetId);
+            // Giros extras (8-12) para parecer que girou várias voltas
+            const extra = 8 + Math.floor(Math.random() * 5);
+            const slice = 360 / activeRoletaModos.length;
+            // Calcula rotação: voltas extras + alinhamento com o ponteiro (270°)
+            const rot = (extra * 360) + (270 - (idx * slice) - (slice / 2));
+
+            // Aplica a rotação via CSS transform (transição animada)
+            canvas.style.transform = `rotate(${rot}deg)`;
+
+            // Após 2s (duração da transição), exibe o resultado
+            setTimeout(() => {
+                isSpinning = false;
+                document.getElementById('winner-name').innerText = activeRoletaModos[idx].nome;
+                document.getElementById('winner-name').style.color = activeRoletaModos[idx].color;
+            }, 2000);
+        }
+
+        /*
+          Evento do botão "Girar Roleta":
+          - Se há 2+ filtros marcados, entra em modo sequência (auto-chain)
+          - Se há 1 filtro marcado, gira com as cartas desse filtro
+          - Caso contrário, gira normalmente com a seleção atual
+        */
+        document.getElementById('trigger-spin').onclick = () => {
+            if (isSpinning || isAutoChainActive) return;
+
+            const checkedFilters = roletaFiltrosData.filter(f => {
+                const cb = document.querySelector(`.filter-cb[data-filter-id="${f.id}"]`);
+                return cb && cb.checked;
+            });
+
+            if (checkedFilters.length > 1) {
+                iniciarAutoChain(checkedFilters);
+            } else if (checkedFilters.length === 1) {
+                const filter = checkedFilters[0];
+                const modos = fullModosData.filter(m => filter.modeIds.includes(m.id));
+                if (modos.length === 0) return alert("Filtro sem cartas!");
+                const winner = modos[Math.floor(Math.random() * modos.length)];
+                spinLocally(winner.id);
+                set(ref(db, 'roleta_command'), { command: 'spin', targetId: winner.id, timestamp: Date.now() });
+            } else {
+                if (activeRoletaModos.length === 0) return alert("Selecione modos!");
+                const winner = activeRoletaModos[Math.floor(Math.random() * activeRoletaModos.length)];
+                spinLocally(winner.id);
+                set(ref(db, 'roleta_command'), { command: 'spin', targetId: winner.id, timestamp: Date.now() });
+            }
+        };
+
+        /*
+          Auto Chain: sequência automática de giros.
+          Percorre os filtros marcados, ativando as cartas
+          de cada um e girando com delay configurável entre eles.
+        */
+        function iniciarAutoChain(filters) {
+            isAutoChainActive = true;
+            autoChainFilters = filters;
+            autoChainIndex = 0;
+            document.getElementById('trigger-spin').disabled = true;
+            executarPassoAutoChain();
+        }
+
+        function executarPassoAutoChain() {
+            if (autoChainIndex >= autoChainFilters.length) {
+                isAutoChainActive = false;
+                document.getElementById('trigger-spin').disabled = false;
+                document.getElementById('winner-name').innerText = 'Sequência concluída!';
+                document.getElementById('winner-name').style.color = 'var(--success)';
+                return;
+            }
+
+            const filter = autoChainFilters[autoChainIndex];
+
+            // Ativa as cartas do filtro nos checkboxes da roleta
+            document.querySelectorAll('.roleta-cb').forEach(cb => {
+                cb.checked = filter.modeIds.includes(cb.value);
+            });
+            const ids = Array.from(document.querySelectorAll('.roleta-cb:checked')).map(el => el.value);
+            activeRoletaModos = ids.length ? fullModosData.filter(m => ids.includes(m.id)) : [...fullModosData];
+            set(ref(db, 'roleta_config/active_modes'), ids);
+            drawWheel();
+
+            setTimeout(() => {
+                if (activeRoletaModos.length === 0) {
+                    autoChainIndex++;
+                    executarPassoAutoChain();
+                    return;
+                }
+
+                const winner = activeRoletaModos[Math.floor(Math.random() * activeRoletaModos.length)];
+                const idx = activeRoletaModos.findIndex(m => m.id === winner.id);
+                const extra = 8 + Math.floor(Math.random() * 5);
+                const slice = 360 / activeRoletaModos.length;
+                const rot = (extra * 360) + (270 - (idx * slice) - (slice / 2));
+
+                isSpinning = true;
+                canvas.style.transform = `rotate(${rot}deg)`;
+
+                setTimeout(() => {
+                    isSpinning = false;
+                    document.getElementById('winner-name').innerText = activeRoletaModos[idx].nome;
+                    document.getElementById('winner-name').style.color = activeRoletaModos[idx].color;
+                    set(ref(db, 'roleta_command'), { command: 'spin', targetId: winner.id, timestamp: Date.now() });
+
+                    autoChainIndex++;
+                    setTimeout(executarPassoAutoChain, filter.delay * 1000);
+                }, 2000);
+            }, 100);
+        }
+
+
+        /*
+          ==========================================================
+          DRAFT LOGIC - Setup inicial
+          Canvas da roleta de equipes, variáveis de estado, cores.
+          ==========================================================
+        */
+        const draftCanvas = document.getElementById('draft-wheel-canvas');
+        const draftCtx = draftCanvas.getContext('2d');
+        const draftTriggerSpin = document.getElementById('draft-trigger-spin');
+        const draftWinnerName = document.getElementById('draft-winner-name');
+        const draftTeamInput = document.getElementById('draft-team-input');
+        // Paleta de cores para as equipes (cíclica)
+        const draftColors = ['#f87171', '#fb923c', '#fbbf24', '#4ade80', '#60a5fa', '#818cf8', '#c084fc', '#f472b6'];
+
+        /*
+          Variáveis de estado da roleta do draft:
+          - draftCurrentRotation: ângulo acumulado para animação contínua
+          - draftIsSpinning: trava para evitar giros simultâneos
+        */
+        let draftCurrentRotation = 0;
+        let draftIsSpinning = false;
+
+        /*
+          ==========================================================
+          ZOOM E PAN (Arrastar a Árvore de Chaves)
+          Permite aumentar/diminuir zoom e arrastar o viewport.
+          ==========================================================
+        */
+        const bracketContent = document.getElementById('bracket-content');
+        const bracketViewport = document.getElementById('bracket-viewport');
+        let currentZoom = 1;
+
+        // Eventos dos botões de zoom (+/-/reset)
+        document.getElementById('btn-zoom-in').addEventListener('click', () => { setZoom(currentZoom + 0.15); });
+        document.getElementById('btn-zoom-out').addEventListener('click', () => { setZoom(currentZoom - 0.15); });
+        document.getElementById('btn-zoom-reset').addEventListener('click', () => {
+            setZoom(1);
+            bracketViewport.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+        });
+
+        /*
+          setZoom: aplica escala ao conteúdo e ajusta a largura
+          para que a barra de rolagem funcione corretamente.
+          Limites: 40% (mín) a 150% (máx).
+        */
+        function setZoom(newZoom) {
+            currentZoom = Math.max(0.4, Math.min(newZoom, 1.5));
+            bracketContent.style.transform = `scale(${currentZoom})`;
+            // Compensa a largura para o scroll funcionar com zoom
+            bracketContent.style.width = `${100 / currentZoom}%`;
+        }
+
+        /*
+          Sistema de arrasto (Pan) com mouse:
+          - mousedown: inicia arrasto, guarda posição inicial
+          - mousemove: calcula deslocamento e atualiza scroll
+          - mouseup/mouseleave: finaliza arrasto
+        */
+        let isDragging = false;
+        let startX, startY, scrollLeft, scrollTop;
+
+        bracketViewport.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            bracketViewport.style.cursor = 'grabbing';
+            startX = e.pageX - bracketViewport.offsetLeft;
+            startY = e.pageY - bracketViewport.offsetTop;
+            scrollLeft = bracketViewport.scrollLeft;
+            scrollTop = bracketViewport.scrollTop;
+        });
+
+        bracketViewport.addEventListener('mouseleave', () => { isDragging = false; bracketViewport.style.cursor = 'grab'; });
+        bracketViewport.addEventListener('mouseup', () => { isDragging = false; bracketViewport.style.cursor = 'grab'; });
+
+        bracketViewport.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            e.preventDefault();
+            const x = e.pageX - bracketViewport.offsetLeft;
+            const y = e.pageY - bracketViewport.offsetTop;
+            const walkX = (x - startX) * 1.5; // Multiplicador de velocidade
+            const walkY = (y - startY) * 1.5;
+            bracketViewport.scrollLeft = scrollLeft - walkX;
+            bracketViewport.scrollTop = scrollTop - walkY;
+        });
+
+        /*
+          ==========================================================
+          TAMANHOS DE CHAVE (4, 8, 16 equipes)
+          Controla o tamanho do bracket e persiste em localStorage.
+          ==========================================================
+        */
+        let currentBracketSize = parseInt(localStorage.getItem('mlbb_bracket_size')) || 8;
+        let DRAFT_MAX_TEAMS = currentBracketSize;
+        document.getElementById('bracket-size-select').value = currentBracketSize;
+
+        /*
+          Evento de mudança do seletor de tamanho:
+          Ao trocar de tamanho, confirma com o usuário e limpa o torneio.
+        */
+        document.getElementById('bracket-size-select').addEventListener('change', (e) => {
+            const newSize = parseInt(e.target.value);
+            if (confirm("Mudar o tamanho da chave apagará o torneio atual e os times. Continuar?")) {
+                currentBracketSize = newSize;
+                DRAFT_MAX_TEAMS = newSize;
+                localStorage.setItem('mlbb_bracket_size', newSize);
+                document.getElementById('btn-clear-all').click();
+            } else {
+                e.target.value = currentBracketSize; // Reverte seleção
+            }
+        });
+
+        /*
+          getBracketTemplates:
+          Retorna a estrutura de chaves para dupla eliminação.
+          - mData: objeto com todas as partidas (W*, L*, GF)
+          - dOrder: ordem de preenchimento dos times na chave superior
+
+          Cada partida contém:
+            name: nome da rodada
+            t1/t2: times (null inicialmente)
+            w: referência para onde o vencedor vai { m, s }
+            l: referência para onde o perdedor vai { m, s }
+            winnerSlot: 't1' ou 't2' quando definido
+        */
+        function getBracketTemplates(size) {
+            let mData = {}, dOrder = [];
+            if (size === 4) {
+                mData = {
+                    W1: { name: "Semi 1", t1: null, t2: null, w: { m: 'W3', s: 't1' }, l: { m: 'L1', s: 't1' }, winnerSlot: null },
+                    W2: { name: "Semi 2", t1: null, t2: null, w: { m: 'W3', s: 't2' }, l: { m: 'L1', s: 't2' }, winnerSlot: null },
+                    W3: { name: "Final Superior", t1: null, t2: null, w: { m: 'GF', s: 't1' }, l: { m: 'L2', s: 't1' }, winnerSlot: null },
+                    L1: { name: "L-Semi", t1: null, t2: null, w: { m: 'L2', s: 't2' }, l: null, winnerSlot: null },
+                    L2: { name: "Final Inferior", t1: null, t2: null, w: { m: 'GF', s: 't2' }, l: null, winnerSlot: null },
+                    GF: { name: "Grande Final", t1: null, t2: null, w: null, l: null, winnerSlot: null }
+                };
+                dOrder = [{ m: 'W1', s: 't1' }, { m: 'W1', s: 't2' }, { m: 'W2', s: 't1' }, { m: 'W2', s: 't2' }];
+            } else if (size === 8) {
+                mData = {
+                    W1: { name: "Quartas 1", t1: null, t2: null, w: { m: 'W5', s: 't1' }, l: { m: 'L1', s: 't1' }, winnerSlot: null },
+                    W2: { name: "Quartas 2", t1: null, t2: null, w: { m: 'W5', s: 't2' }, l: { m: 'L1', s: 't2' }, winnerSlot: null },
+                    W3: { name: "Quartas 3", t1: null, t2: null, w: { m: 'W6', s: 't1' }, l: { m: 'L2', s: 't1' }, winnerSlot: null },
+                    W4: { name: "Quartas 4", t1: null, t2: null, w: { m: 'W6', s: 't2' }, l: { m: 'L2', s: 't2' }, winnerSlot: null },
+                    W5: { name: "Semi 1", t1: null, t2: null, w: { m: 'W7', s: 't1' }, l: { m: 'L4', s: 't1' }, winnerSlot: null },
+                    W6: { name: "Semi 2", t1: null, t2: null, w: { m: 'W7', s: 't2' }, l: { m: 'L3', s: 't1' }, winnerSlot: null },
+                    W7: { name: "Final Superior", t1: null, t2: null, w: { m: 'GF', s: 't1' }, l: { m: 'L6', s: 't1' }, winnerSlot: null },
+
+                    L1: { name: "L-Round 1", t1: null, t2: null, w: { m: 'L3', s: 't2' }, l: null, winnerSlot: null },
+                    L2: { name: "L-Round 1", t1: null, t2: null, w: { m: 'L4', s: 't2' }, l: null, winnerSlot: null },
+                    L3: { name: "L-Quartas", t1: null, t2: null, w: { m: 'L5', s: 't1' }, l: null, winnerSlot: null },
+                    L4: { name: "L-Quartas", t1: null, t2: null, w: { m: 'L5', s: 't2' }, l: null, winnerSlot: null },
+                    L5: { name: "L-Semi", t1: null, t2: null, w: { m: 'L6', s: 't2' }, l: null, winnerSlot: null },
+                    L6: { name: "Final Inferior", t1: null, t2: null, w: { m: 'GF', s: 't2' }, l: null, winnerSlot: null },
+
+                    GF: { name: "Grande Final", t1: null, t2: null, w: null, l: null, winnerSlot: null }
+                };
+                dOrder = [
+                    { m: 'W1', s: 't1' }, { m: 'W1', s: 't2' }, { m: 'W2', s: 't1' }, { m: 'W2', s: 't2' },
+                    { m: 'W3', s: 't1' }, { m: 'W3', s: 't2' }, { m: 'W4', s: 't1' }, { m: 'W4', s: 't2' }
+                ];
+            } else if (size === 16) {
+                mData = {
+                    W1: { name: "Oitavas 1", t1: null, t2: null, w: { m: 'W9', s: 't1' }, l: { m: 'L1', s: 't1' }, winnerSlot: null },
+                    W2: { name: "Oitavas 2", t1: null, t2: null, w: { m: 'W9', s: 't2' }, l: { m: 'L1', s: 't2' }, winnerSlot: null },
+                    W3: { name: "Oitavas 3", t1: null, t2: null, w: { m: 'W10', s: 't1' }, l: { m: 'L2', s: 't1' }, winnerSlot: null },
+                    W4: { name: "Oitavas 4", t1: null, t2: null, w: { m: 'W10', s: 't2' }, l: { m: 'L2', s: 't2' }, winnerSlot: null },
+                    W5: { name: "Oitavas 5", t1: null, t2: null, w: { m: 'W11', s: 't1' }, l: { m: 'L3', s: 't1' }, winnerSlot: null },
+                    W6: { name: "Oitavas 6", t1: null, t2: null, w: { m: 'W11', s: 't2' }, l: { m: 'L3', s: 't2' }, winnerSlot: null },
+                    W7: { name: "Oitavas 7", t1: null, t2: null, w: { m: 'W12', s: 't1' }, l: { m: 'L4', s: 't1' }, winnerSlot: null },
+                    W8: { name: "Oitavas 8", t1: null, t2: null, w: { m: 'W12', s: 't2' }, l: { m: 'L4', s: 't2' }, winnerSlot: null },
+
+                    W9: { name: "Quartas 1", t1: null, t2: null, w: { m: 'W13', s: 't1' }, l: { m: 'L5', s: 't1' }, winnerSlot: null },
+                    W10: { name: "Quartas 2", t1: null, t2: null, w: { m: 'W13', s: 't2' }, l: { m: 'L6', s: 't1' }, winnerSlot: null },
+                    W11: { name: "Quartas 3", t1: null, t2: null, w: { m: 'W14', s: 't1' }, l: { m: 'L7', s: 't1' }, winnerSlot: null },
+                    W12: { name: "Quartas 4", t1: null, t2: null, w: { m: 'W14', s: 't2' }, l: { m: 'L8', s: 't1' }, winnerSlot: null },
+
+                    W13: { name: "Semi 1", t1: null, t2: null, w: { m: 'W15', s: 't1' }, l: { m: 'L12', s: 't1' }, winnerSlot: null },
+                    W14: { name: "Semi 2", t1: null, t2: null, w: { m: 'W15', s: 't2' }, l: { m: 'L11', s: 't1' }, winnerSlot: null },
+                    W15: { name: "Final Superior", t1: null, t2: null, w: { m: 'GF', s: 't1' }, l: { m: 'L14', s: 't1' }, winnerSlot: null },
+
+                    L1: { name: "L-R1 (1)", t1: null, t2: null, w: { m: 'L5', s: 't2' }, l: null, winnerSlot: null },
+                    L2: { name: "L-R1 (2)", t1: null, t2: null, w: { m: 'L6', s: 't2' }, l: null, winnerSlot: null },
+                    L3: { name: "L-R1 (3)", t1: null, t2: null, w: { m: 'L7', s: 't2' }, l: null, winnerSlot: null },
+                    L4: { name: "L-R1 (4)", t1: null, t2: null, w: { m: 'L8', s: 't2' }, l: null, winnerSlot: null },
+
+                    L5: { name: "L-R2 (1)", t1: null, t2: null, w: { m: 'L9', s: 't1' }, l: null, winnerSlot: null },
+                    L6: { name: "L-R2 (2)", t1: null, t2: null, w: { m: 'L9', s: 't2' }, l: null, winnerSlot: null },
+                    L7: { name: "L-R2 (3)", t1: null, t2: null, w: { m: 'L10', s: 't1' }, l: null, winnerSlot: null },
+                    L8: { name: "L-R2 (4)", t1: null, t2: null, w: { m: 'L10', s: 't2' }, l: null, winnerSlot: null },
+
+                    L9: { name: "L-R3 (1)", t1: null, t2: null, w: { m: 'L11', s: 't2' }, l: null, winnerSlot: null },
+                    L10: { name: "L-R3 (2)", t1: null, t2: null, w: { m: 'L12', s: 't2' }, l: null, winnerSlot: null },
+
+                    L11: { name: "L-Quartas 1", t1: null, t2: null, w: { m: 'L13', s: 't1' }, l: null, winnerSlot: null },
+                    L12: { name: "L-Quartas 2", t1: null, t2: null, w: { m: 'L13', s: 't2' }, l: null, winnerSlot: null },
+
+                    L13: { name: "L-Semi", t1: null, t2: null, w: { m: 'L14', s: 't2' }, l: null, winnerSlot: null },
+                    L14: { name: "Final Inferior", t1: null, t2: null, w: { m: 'GF', s: 't2' }, l: null, winnerSlot: null },
+                    GF: { name: "Grande Final", t1: null, t2: null, w: null, l: null, winnerSlot: null }
+                };
+                dOrder = [
+                    { m: 'W1', s: 't1' }, { m: 'W1', s: 't2' }, { m: 'W2', s: 't1' }, { m: 'W2', s: 't2' },
+                    { m: 'W3', s: 't1' }, { m: 'W3', s: 't2' }, { m: 'W4', s: 't1' }, { m: 'W4', s: 't2' },
+                    { m: 'W5', s: 't1' }, { m: 'W5', s: 't2' }, { m: 'W6', s: 't1' }, { m: 'W6', s: 't2' },
+                    { m: 'W7', s: 't1' }, { m: 'W7', s: 't2' }, { m: 'W8', s: 't1' }, { m: 'W8', s: 't2' }
+                ];
+            }
+            return { mData, dOrder };
+        }
+
+        /*
+          ==========================================================
+          ESTADO DO DRAFT (persistido em localStorage)
+          ==========================================================
+          - initialTeams: lista original de equipes (para reiniciar)
+          - poolTeams: equipes ainda não sorteadas
+          - drawnTeamsCount: quantas já foram sorteadas
+          - matchData: estado atual de todas as partidas do bracket
+          - drawOrder: ordem em que os slots da chave superior são preenchidos
+        */
+        let initialTeams = JSON.parse(localStorage.getItem('mlbb_initial_teams')) || [];
+        let poolTeams = JSON.parse(localStorage.getItem('mlbb_pool_teams')) || [];
+        let drawnTeamsCount = parseInt(localStorage.getItem('mlbb_drawn_count')) || 0;
+        let matchData = JSON.parse(localStorage.getItem('mlbb_match_data')) || JSON.parse(JSON.stringify(getBracketTemplates(currentBracketSize).mData));
+        let drawOrder = getBracketTemplates(currentBracketSize).dOrder;
+
+        /*
+          saveDraftState: persiste todo o estado do draft no localStorage
+          para que sobreviva a refreshes da página.
+        */
+        function saveDraftState() {
+            localStorage.setItem('mlbb_initial_teams', JSON.stringify(initialTeams));
+            localStorage.setItem('mlbb_pool_teams', JSON.stringify(poolTeams));
+            localStorage.setItem('mlbb_drawn_count', drawnTeamsCount.toString());
+            localStorage.setItem('mlbb_match_data', JSON.stringify(matchData));
+        }
+
+        /*
+          Botão "Reiniciar": mantém os times mas zera chaves e resultados.
+          Devolve os times para a pool de sorteio.
+        */
+        document.getElementById('btn-restart-tourney').addEventListener('click', () => {
+            if (initialTeams.length === 0) return alert("Não há equipes salvas para reiniciar um torneio.");
+            if (confirm("Isso vai apagar os resultados das chaves e devolver os times originais para a roleta. Continuar?")) {
+                poolTeams = JSON.parse(JSON.stringify(initialTeams));
+                matchData = JSON.parse(JSON.stringify(getBracketTemplates(currentBracketSize).mData));
+                drawOrder = getBracketTemplates(currentBracketSize).dOrder;
+                drawnTeamsCount = 0;
+                draftWinnerName.innerText = "---";
+                draftWinnerName.style.color = "var(--primary)";
+                saveDraftState();
+                atualizarRoletaDraftUI();
+                set(ref(db, 'bracket_data'), { state: matchData, timestamp: Date.now() });
+            }
+        });
+
+        /*
+          Botão "Apagar": remove todos os times e reseta as chaves.
+        */
+        document.getElementById('btn-clear-all').addEventListener('click', () => {
+            if (confirm("ATENÇÃO: Isso vai excluir todos os times da roleta e apagar o torneio atual. Continuar?")) {
+                initialTeams = [];
+                poolTeams = [];
+                drawnTeamsCount = 0;
+                matchData = JSON.parse(JSON.stringify(getBracketTemplates(currentBracketSize).mData));
+                drawOrder = getBracketTemplates(currentBracketSize).dOrder;
+                draftWinnerName.innerText = "---";
+                draftWinnerName.style.color = "var(--primary)";
+                saveDraftState();
+                atualizarRoletaDraftUI();
+                set(ref(db, 'bracket_data'), { state: matchData, timestamp: Date.now() });
+            }
+        });
+
+        /*
+          Botão "Add": adiciona uma nova equipe à lista.
+          Cada equipe recebe um ID único e uma cor da paleta (cíclica).
+        */
+        document.getElementById('btn-add-team').addEventListener('click', (e) => {
+            e.preventDefault();
+            const val = draftTeamInput.value.trim();
+            if (!val) return;
+            if (initialTeams.length >= DRAFT_MAX_TEAMS) return alert(`Limite de ${DRAFT_MAX_TEAMS} times!`);
+
+            const newTeam = {
+                id: 'team_' + Date.now(),
+                nome: val,
+                color: draftColors[(initialTeams.length) % draftColors.length]
+            };
+
+            initialTeams.push(newTeam);
+            poolTeams.push(newTeam);
+            draftTeamInput.value = '';
+
+            saveDraftState();
+            atualizarRoletaDraftUI();
+        });
+
+        /*
+          Botão "+ BYE": adiciona uma vaga BYE (passe direto).
+          Times BYE são avançados automaticamente (advanceByes).
+        */
+        document.getElementById('btn-add-bye').addEventListener('click', (e) => {
+            e.preventDefault();
+            if (initialTeams.length >= DRAFT_MAX_TEAMS) return alert(`Limite de ${DRAFT_MAX_TEAMS} times!`);
+
+            const byeTeam = {
+                id: 'bye_' + Date.now(),
+                nome: 'BYE',
+                color: '#52525b',
+                isBye: true
+            };
+
+            initialTeams.push(byeTeam);
+            poolTeams.push(byeTeam);
+
+            saveDraftState();
+            atualizarRoletaDraftUI();
+        });
+
+        /*
+          Enter no input de equipe dispara o clique do botão Add.
+        */
+        draftTeamInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') document.getElementById('btn-add-team').click(); });
+
+        /*
+          atualizarRoletaDraftUI:
+          Atualiza a lista visual de equipes, habilita/desabilita botões,
+          redesenha a roleta e o bracket.
+        */
+        function atualizarRoletaDraftUI() {
+            const container = document.getElementById('teams-container');
+            // Se não há times, mostra mensagem "Vazio"
+            container.innerHTML = poolTeams.length ? '' : '<div style="color: #71717a; text-align: center; font-size: 0.85rem;">Vazio</div>';
+
+            // Renderiza cada time na lista
+            poolTeams.forEach((t) => {
+                container.innerHTML += `
+                    <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border); padding: 0.5rem 0.75rem; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem;">
+                        <span style="font-weight: 600; color: ${t.color}">${t.nome}</span>
+                        <button onclick="removerTime('${t.id}')" style="background:none; border:none; color:#ef4444; cursor:pointer; font-weight:bold;">X</button>
+                    </div>`;
+            });
+
+            // Botão "Sortear Vaga" desabilitado se não há times ou já sorteou todos
+            draftTriggerSpin.disabled = poolTeams.length === 0 || drawnTeamsCount >= DRAFT_MAX_TEAMS;
+            drawDraftWheel();
+            renderBracket();
+        }
+
+        /*
+          removerTime: remove um time da pool E da lista inicial.
+          Chamado pelo botão "X" ao lado de cada time.
+        */
+        window.removerTime = function (teamId) {
+            poolTeams = poolTeams.filter(t => t.id !== teamId);
+            initialTeams = initialTeams.filter(t => t.id !== teamId);
+            saveDraftState();
+            atualizarRoletaDraftUI();
+        }
+
+        /*
+          drawDraftWheel: desenha a roleta de equipes no canvas.
+          Se não há equipes, exibe texto "Adicione Equipes".
+          Cada fatia tem a borda na cor da equipe.
+        */
+        function drawDraftWheel() {
+            const centerX = draftCanvas.width / 2;
+            const centerY = draftCanvas.height / 2;
+            const radius = draftCanvas.width / 2 - 10;
+            draftCtx.clearRect(0, 0, draftCanvas.width, draftCanvas.height);
+
+            // Estado vazio
+            if (poolTeams.length === 0) {
+                draftCtx.beginPath(); draftCtx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+                draftCtx.fillStyle = '#18181b'; draftCtx.fill(); draftCtx.strokeStyle = '#27272a'; draftCtx.lineWidth = 5; draftCtx.stroke();
+                draftCtx.fillStyle = '#52525b'; draftCtx.font = 'bold 40px Inter'; draftCtx.textAlign = 'center';
+                draftCtx.fillText('Adicione Equipes', centerX, centerY + 15);
+                return;
+            }
+
+            // Desenha fatias para cada equipe
+            const sliceAngle = (2 * Math.PI) / poolTeams.length;
+            poolTeams.forEach((modo, i) => {
+                const angle = i * sliceAngle;
+                draftCtx.beginPath(); draftCtx.moveTo(centerX, centerY); draftCtx.arc(centerX, centerY, radius, angle, angle + sliceAngle);
+                draftCtx.fillStyle = i % 2 === 0 ? '#18181b' : '#27272a'; draftCtx.fill();
+                draftCtx.strokeStyle = modo.color; draftCtx.lineWidth = 2; draftCtx.stroke();
+
+                // Texto rotacionado no centro da fatia
+                draftCtx.save(); draftCtx.translate(centerX, centerY); draftCtx.rotate(angle + sliceAngle / 2);
+                draftCtx.textAlign = 'right'; draftCtx.fillStyle = modo.color || '#fff'; draftCtx.font = 'bold 35px Inter';
+                draftCtx.fillText(modo.nome, radius - 40, 12); draftCtx.restore();
+            });
+        }
+
+        /*
+          Evento do botão "Sortear Vaga":
+          - Escolhe um time aleatório da pool
+          - Anima o giro da roleta
+          - Após 3s, coloca o time no próximo slot vazio do bracket
+          - Salva estado e sincroniza com Firebase
+        */
+        draftTriggerSpin.onclick = () => {
+            if (draftIsSpinning || poolTeams.length === 0) return;
+
+            // Bloqueia interações durante o giro
+            draftIsSpinning = true; draftTriggerSpin.disabled = true;
+            draftTeamInput.disabled = true; document.getElementById('btn-add-team').disabled = true;
+
+            // Sorteia um time aleatório
+            const winnerIndex = Math.floor(Math.random() * poolTeams.length);
+            const winner = poolTeams[winnerIndex];
+
+            // Calcula rotação para animação (5-7 voltas extras)
+            const extraSpins = 5 + Math.floor(Math.random() * 3);
+            const sliceAngle = 360 / poolTeams.length;
+            const targetRotation = (extraSpins * 360) + (270 - (winnerIndex * sliceAngle) - (sliceAngle / 2));
+
+            // Acumula rotação para animação contínua
+            draftCurrentRotation += targetRotation;
+            draftCanvas.style.transform = `rotate(${draftCurrentRotation}deg)`;
+
+            // Após 3s (fim da animação), processa o resultado
+            setTimeout(() => {
+                draftWinnerName.innerText = winner.nome;
+                draftWinnerName.style.color = winner.color;
+
+                // Coloca o time sorteado no próximo slot disponível
+                const slot = drawOrder[drawnTeamsCount];
+                matchData[slot.m][slot.s] = winner;
+
+                // Remove da pool e incrementa contador
+                poolTeams.splice(winnerIndex, 1);
+                drawnTeamsCount++;
+
+                saveDraftState();
+
+                // Reseta a rotação do canvas para o próximo giro
+                draftCanvas.style.transition = 'none'; draftCanvas.style.transform = `rotate(0deg)`; draftCurrentRotation = 0;
+                set(ref(db, 'bracket_data'), { state: matchData, timestamp: Date.now() });
+
+                // Re-renderiza e verifica BYEs
+                setTimeout(() => {
+                    draftCanvas.style.transition = 'transform 3s cubic-bezier(0.15, 0, 0.15, 1)';
+                    atualizarRoletaDraftUI();
+
+                    // Se todos os times foram sorteados, avança BYEs automaticamente
+                    if (drawnTeamsCount >= DRAFT_MAX_TEAMS) advanceByes();
+
+                    draftIsSpinning = false; draftTeamInput.disabled = false; document.getElementById('btn-add-team').disabled = false;
+                }, 50);
+
+            }, 3000);
+        };
+
+        /*
+          setWinner: define o vencedor de uma partida.
+          - clickedSlot: 't1' ou 't2' (qual time foi clicado)
+          - Avança vencedor para a próxima chave (match.w)
+          - Envia perdedor para a chave inferior (match.l)
+          - Dispara advanceByes para processar BYEs automaticamente
+        */
+        window.setWinner = function (matchId, clickedSlot) {
+            const match = matchData[matchId];
+            // Só permite se ambos os times existirem e não houver vencedor ainda
+            if (!match.t1 || !match.t2 || match.winnerSlot) return;
+
+            const winnerTeam = match[clickedSlot];
+            const loserSlot = clickedSlot === 't1' ? 't2' : 't1';
+            const loserTeam = match[loserSlot];
+
+            match.winnerSlot = clickedSlot;
+
+            // Avança vencedor para o slot correspondente na próxima rodada
+            if (match.w) matchData[match.w.m][match.w.s] = winnerTeam;
+            // Envia perdedor para a chave inferior (se houver)
+            if (match.l) matchData[match.l.m][match.l.s] = loserTeam;
+
+            saveDraftState();
+            set(ref(db, 'bracket_data'), { state: matchData, timestamp: Date.now() });
+            renderBracket();
+
+            // Verifica se a partida gerou confrontos contra BYE
+            setTimeout(advanceByes, 200);
+        }
+
+        /*
+          advanceByes: sistema de avanço automático de BYEs.
+          Percorre todas as partidas: se uma tem BYE vs time real,
+          o time real vence automaticamente.
+          Se dois BYEs se enfrentam, o primeiro avança.
+          Usa setTimeout recursivo até não haver mais BYEs a avançar.
+        */
+        function advanceByes() {
+            let advanced = false;
+            Object.keys(matchData).forEach(matchId => {
+                const m = matchData[matchId];
+                // Só processa partidas sem vencedor definido e com ambos os times
+                if (!m.winnerSlot && m.t1 && m.t2) {
+                    if (m.t1.isBye && !m.t2.isBye) {
+                        window.setWinner(matchId, 't2');
+                        advanced = true;
+                    } else if (!m.t1.isBye && m.t2.isBye) {
+                        window.setWinner(matchId, 't1');
+                        advanced = true;
+                    } else if (m.t1.isBye && m.t2.isBye) {
+                        window.setWinner(matchId, 't1');
+                        advanced = true;
+                    }
+                }
+            });
+            // Se algum BYE avançou, pode ter gerado novos confrontos BYE
+            if (advanced) {
+                setTimeout(advanceByes, 300);
+            }
+        }
+
+        /*
+          undoWinner: desfaz o resultado de uma partida.
+          - Remove o vencedor e perdedor das chaves subsequentes
+            (recursivamente via clearForward)
+          - Permite redefinir o vencedor da partida
+        */
+        window.undoWinner = function (e, matchId) {
+            e.stopPropagation(); // Impede acionar outros cliques (ex: setWinner)
+
+            const match = matchData[matchId];
+            if (!match.winnerSlot) return;
+
+            /*
+              clearForward: função recursiva que limpa um time
+              de todas as partidas subsequentes na árvore.
+            */
+            function clearForward(mId, teamObj) {
+                if (!teamObj || !mId) return;
+                const m = matchData[mId];
+                if (m.t1 && m.t1.id === teamObj.id) {
+                    m.t1 = null;
+                    if (m.winnerSlot === 't1') {
+                        m.winnerSlot = null;
+                        if (m.w) clearForward(m.w.m, teamObj);
+                        if (m.l) clearForward(m.l.m, teamObj);
+                    }
+                }
+                if (m.t2 && m.t2.id === teamObj.id) {
+                    m.t2 = null;
+                    if (m.winnerSlot === 't2') {
+                        m.winnerSlot = null;
+                        if (m.w) clearForward(m.w.m, teamObj);
+                        if (m.l) clearForward(m.l.m, teamObj);
+                    }
+                }
+            }
+
+            const winnerTeam = match[match.winnerSlot];
+            const loserSlot = match.winnerSlot === 't1' ? 't2' : 't1';
+            const loserTeam = match[loserSlot];
+
+            match.winnerSlot = null;
+            // Limpa vencedor e perdedor das chaves seguintes
+            if (match.w) clearForward(match.w.m, winnerTeam);
+            if (match.l) clearForward(match.l.m, loserTeam);
+
+            saveDraftState();
+            set(ref(db, 'bracket_data'), { state: matchData, timestamp: Date.now() });
+            renderBracket();
+        }
+
+        /*
+          generateMatchHTML: gera o HTML de uma partida para o bracket.
+          - Se ambos os times existem e não há vencedor, os slots são clicáveis
+          - Se há vencedor, mostra destaque dourado + botão desfazer
+        */
+        function generateMatchHTML(matchId) {
+            const match = matchData[matchId];
+            const t1 = match.t1;
+            const t2 = match.t2;
+            // Só permite clicar se ambos os times existirem e não houver vencedor
+            const canClick = t1 && t2 && !match.winnerSlot;
+
+            // Botão "Desfazer" visível apenas no hover do slot vencedor
+            const undoBtn1 = match.winnerSlot === 't1' ? `<button class="undo-btn" onclick="undoWinner(event, '${matchId}')" title="Desfazer Partida"><i data-lucide="undo-2" style="width: 14px; height: 14px;"></i></button>` : '';
+            const undoBtn2 = match.winnerSlot === 't2' ? `<button class="undo-btn" onclick="undoWinner(event, '${matchId}')" title="Desfazer Partida"><i data-lucide="undo-2" style="width: 14px; height: 14px;"></i></button>` : '';
+
+            return `
+            <div class="match-box">
+                <div class="match-name">${match.name}</div>
+                <!-- Slot do Time 1 -->
+                <div class="team-slot ${canClick ? 'clickable' : ''} ${match.winnerSlot === 't1' ? 'winner can-undo' : ''}" 
+                     ${canClick ? `onclick="setWinner('${matchId}', 't1')"` : ''} 
+                     style="color: ${t1 ? t1.color : '#a1a1aa'}">
+                    <span>${t1 ? t1.nome : 'Aguardando...'}</span>
+                    <div class="slot-actions">
+                        ${undoBtn1}
+                        ${match.winnerSlot === 't1' ? '<i data-lucide="check" class="check-icon-winner" style="width: 16px; color: var(--primary);"></i>' : ''}
+                    </div>
+                </div>
+                <!-- Slot do Time 2 -->
+                <div class="team-slot ${canClick ? 'clickable' : ''} ${match.winnerSlot === 't2' ? 'winner can-undo' : ''}" 
+                     ${canClick ? `onclick="setWinner('${matchId}', 't2')"` : ''} 
+                     style="color: ${t2 ? t2.color : '#a1a1aa'}">
+                    <span>${t2 ? t2.nome : 'Aguardando...'}</span>
+                    <div class="slot-actions">
+                        ${undoBtn2}
+                        ${match.winnerSlot === 't2' ? '<i data-lucide="check" class="check-icon-winner" style="width: 16px; color: var(--primary);"></i>' : ''}
+                    </div>
+                </div>
+            </div>`;
+        }
+
+        /*
+          renderBracketStructure: gera o HTML da estrutura de colunas do bracket.
+          Cria as colunas para chave superior, chave inferior e grande final,
+          de acordo com o tamanho (4, 8 ou 16 equipes).
+          As partidas são inseridas depois por renderBracket().
+        */
+        function renderBracketStructure(size) {
+            let html = '';
+            if (size === 4) {
+                // Chave Superior (4 equipes) -> 2 rodadas
+                html += `<h2 class="section-title" style="color: var(--primary);">CHAVE SUPERIOR (VITÓRIA)</h2>
+                <div style="display: flex; gap: 2rem; margin-bottom: 2rem; min-width: 400px; justify-content: center;">
+                    <div class="round-col" id="col-w1"></div>
+                    <div class="round-col" id="col-w2" style="justify-content: center;"></div>
+                </div>
+                <h2 class="section-title" style="color: #f87171; border-top: 2px dashed var(--border); padding-top: 2rem; margin-top: 2rem;">CHAVE INFERIOR (DERROTA)</h2>
+                <div style="display: flex; gap: 2rem; min-width: 400px; justify-content: center;">
+                    <div class="round-col" id="col-l1"></div>
+                    <div class="round-col" id="col-l2" style="justify-content: center;"></div>
+                </div>
+                <div style="display: flex; justify-content: center; margin-top: 3rem; padding-top: 2rem; border-top: 2px solid var(--primary);">
+                    <div class="round-col" id="col-gf"><h3 style="text-align:center; color: var(--primary); margin-bottom: 1rem; font-family: 'Outfit';">GRANDE FINAL</h3></div>
+                </div>`;
+            } else if (size === 8) {
+                html += `<h2 class="section-title" style="color: var(--primary);">CHAVE SUPERIOR (VITÓRIA)</h2>
+                <div style="display: flex; gap: 2rem; margin-bottom: 2rem; min-width: 800px; justify-content: center;">
+                    <div class="round-col" id="col-w1"></div>
+                    <div class="round-col" id="col-w2" style="justify-content: space-around;"></div>
+                    <div class="round-col" id="col-w3" style="justify-content: center;"></div>
+                </div>
+                <h2 class="section-title" style="color: #f87171; border-top: 2px dashed var(--border); padding-top: 2rem; margin-top: 2rem;">CHAVE INFERIOR (DERROTA)</h2>
+                <div style="display: flex; gap: 2rem; min-width: 800px; justify-content: center;">
+                    <div class="round-col" id="col-l1" style="justify-content: space-around;"></div>
+                    <div class="round-col" id="col-l2" style="justify-content: space-around;"></div>
+                    <div class="round-col" id="col-l3" style="justify-content: center;"></div>
+                    <div class="round-col" id="col-l4" style="justify-content: center;"></div>
+                </div>
+                <div style="display: flex; justify-content: center; margin-top: 3rem; padding-top: 2rem; border-top: 2px solid var(--primary);">
+                    <div class="round-col" id="col-gf"><h3 style="text-align:center; color: var(--primary); margin-bottom: 1rem; font-family: 'Outfit';">GRANDE FINAL</h3></div>
+                </div>`;
+            } else if (size === 16) {
+                html += `<h2 class="section-title" style="color: var(--primary);">CHAVE SUPERIOR (VITÓRIA)</h2>
+                <div style="display: flex; gap: 2rem; margin-bottom: 2rem; min-width: 1200px; justify-content: center;">
+                    <div class="round-col" id="col-w1"></div>
+                    <div class="round-col" id="col-w2" style="justify-content: space-around;"></div>
+                    <div class="round-col" id="col-w3" style="justify-content: space-around;"></div>
+                    <div class="round-col" id="col-w4" style="justify-content: center;"></div>
+                </div>
+                <h2 class="section-title" style="color: #f87171; border-top: 2px dashed var(--border); padding-top: 2rem; margin-top: 2rem;">CHAVE INFERIOR (DERROTA)</h2>
+                <div style="display: flex; gap: 2rem; min-width: 1200px; justify-content: center;">
+                    <div class="round-col" id="col-l1" style="justify-content: space-around;"></div>
+                    <div class="round-col" id="col-l2" style="justify-content: space-around;"></div>
+                    <div class="round-col" id="col-l3" style="justify-content: space-around;"></div>
+                    <div class="round-col" id="col-l4" style="justify-content: space-around;"></div>
+                    <div class="round-col" id="col-l5" style="justify-content: center;"></div>
+                    <div class="round-col" id="col-l6" style="justify-content: center;"></div>
+                </div>
+                <div style="display: flex; justify-content: center; margin-top: 3rem; padding-top: 2rem; border-top: 2px solid var(--primary);">
+                    <div class="round-col" id="col-gf"><h3 style="text-align:center; color: var(--primary); margin-bottom: 1rem; font-family: 'Outfit';">GRANDE FINAL</h3></div>
+                </div>`;
+            }
+            html += `<div style="display: flex; justify-content: center; gap: 1rem; margin-top: 3rem; flex-wrap: wrap;">
+                <button id="btn-print-bracket" class="btn-action" style="max-width: 250px; background: rgba(59, 130, 246, 0.1); border: 1px dashed #3b82f6; color: #3b82f6; padding: 1rem; font-size: 1rem;" title="Imprimir somente as chaves"><i data-lucide="printer" style="width: 20px;"></i> Imprimir Chaves</button>
+                <button id="btn-export-jpg" class="btn-action" style="max-width: 250px; background: rgba(34, 197, 94, 0.1); border: 1px dashed #22c55e; color: #22c55e; padding: 1rem; font-size: 1rem;" title="Baixar como imagem JPG"><i data-lucide="image" style="width: 20px;"></i> Baixar JPG</button>
+            </div>`;
+
+            document.getElementById('bracket-content').innerHTML = html;
+        }
+
+        /*
+          renderBracket: renderiza todo o bracket.
+          Primeiro monta a estrutura (colunas) e depois insere
+          as partidas geradas por generateMatchHTML.
+        */
+        function renderBracket() {
+            renderBracketStructure(currentBracketSize);
+
+            if (currentBracketSize === 4) {
+                document.getElementById('col-w1').innerHTML = generateMatchHTML('W1') + generateMatchHTML('W2');
+                document.getElementById('col-w2').innerHTML = generateMatchHTML('W3');
+                document.getElementById('col-l1').innerHTML = generateMatchHTML('L1');
+                document.getElementById('col-l2').innerHTML = generateMatchHTML('L2');
+            } else if (currentBracketSize === 8) {
+                document.getElementById('col-w1').innerHTML = generateMatchHTML('W1') + generateMatchHTML('W2') + generateMatchHTML('W3') + generateMatchHTML('W4');
+                document.getElementById('col-w2').innerHTML = generateMatchHTML('W5') + generateMatchHTML('W6');
+                document.getElementById('col-w3').innerHTML = generateMatchHTML('W7');
+                document.getElementById('col-l1').innerHTML = generateMatchHTML('L1') + generateMatchHTML('L2');
+                document.getElementById('col-l2').innerHTML = generateMatchHTML('L3') + generateMatchHTML('L4');
+                document.getElementById('col-l3').innerHTML = generateMatchHTML('L5');
+                document.getElementById('col-l4').innerHTML = generateMatchHTML('L6');
+            } else if (currentBracketSize === 16) {
+                document.getElementById('col-w1').innerHTML = generateMatchHTML('W1') + generateMatchHTML('W2') + generateMatchHTML('W3') + generateMatchHTML('W4') + generateMatchHTML('W5') + generateMatchHTML('W6') + generateMatchHTML('W7') + generateMatchHTML('W8');
+                document.getElementById('col-w2').innerHTML = generateMatchHTML('W9') + generateMatchHTML('W10') + generateMatchHTML('W11') + generateMatchHTML('W12');
+                document.getElementById('col-w3').innerHTML = generateMatchHTML('W13') + generateMatchHTML('W14');
+                document.getElementById('col-w4').innerHTML = generateMatchHTML('W15');
+
+                document.getElementById('col-l1').innerHTML = generateMatchHTML('L1') + generateMatchHTML('L2') + generateMatchHTML('L3') + generateMatchHTML('L4');
+                document.getElementById('col-l2').innerHTML = generateMatchHTML('L5') + generateMatchHTML('L6') + generateMatchHTML('L7') + generateMatchHTML('L8');
+                document.getElementById('col-l3').innerHTML = generateMatchHTML('L9') + generateMatchHTML('L10');
+                document.getElementById('col-l4').innerHTML = generateMatchHTML('L11') + generateMatchHTML('L12');
+                document.getElementById('col-l5').innerHTML = generateMatchHTML('L13');
+                document.getElementById('col-l6').innerHTML = generateMatchHTML('L14');
+            }
+
+            document.getElementById('col-gf').innerHTML += generateMatchHTML('GF');
+
+            const printBtn = document.getElementById('btn-print-bracket');
+            if (printBtn) {
+                printBtn.onclick = () => window.print();
+            }
+
+            const jpgBtn = document.getElementById('btn-export-jpg');
+            if (jpgBtn) {
+                jpgBtn.onclick = () => exportarBracketJPG();
+            }
+
+            lucide.createIcons();
+        }
+
+        /*
+          ==========================================================
+          FILTROS DA ROLETA - Firebase CRUD
+          Salva, carrega e remove filtros do Firebase.
+          ==========================================================
+        */
+        function salvarFiltroFirebase(nome, modeIds, delay) {
+            const id = 'filter_' + Date.now();
+            set(ref(db, 'roleta_filters/' + id), { id, nome, modeIds, delay });
+        }
+
+        function deletarFiltroFirebase(id) {
+            remove(ref(db, 'roleta_filters/' + id));
+        }
+
+        /*
+          renderRoletaFilters: renderiza a lista de filtros salvos
+          com checkbox, nome, delay label e botões editar/deletar.
+        */
+        function renderRoletaFilters() {
+            const container = document.getElementById('filters-list');
+            if (!container) return;
+            container.innerHTML = '';
+
+            if (roletaFiltrosData.length === 0) {
+                container.innerHTML = '<div style="font-size:0.8rem;color:var(--muted-foreground);padding:0.5rem 0;">Nenhum filtro criado.</div>';
+                return;
+            }
+
+            roletaFiltrosData.forEach(f => {
+                const div = document.createElement('div');
+                div.className = 'filter-item';
+
+                const cb = document.createElement('input');
+                cb.type = 'checkbox';
+                cb.className = 'filter-cb';
+                cb.dataset.filterId = f.id;
+                cb.onchange = () => aplicarFiltro(f.id, cb.checked);
+
+                const nome = document.createElement('span');
+                nome.className = 'filter-nome';
+                nome.textContent = f.nome;
+
+                const delayLabel = document.createElement('span');
+                delayLabel.className = 'filter-delay-label';
+                delayLabel.textContent = f.delay + 's';
+
+                const btnEdit = document.createElement('button');
+                btnEdit.className = 'btn-filter-edit';
+                btnEdit.innerHTML = '<i data-lucide="pencil" style="width:14px;height:14px;"></i>';
+                btnEdit.title = 'Editar filtro';
+                btnEdit.onclick = (e) => {
+                    e.stopPropagation();
+                    abrirModalEdicao(f);
+                };
+
+                const btnDel = document.createElement('button');
+                btnDel.className = 'btn-filter-delete';
+                btnDel.innerHTML = '<i data-lucide="x" style="width:14px;height:14px;"></i>';
+                btnDel.title = 'Deletar filtro';
+                btnDel.onclick = (e) => {
+                    e.stopPropagation();
+                    if (confirm('Deletar filtro "' + f.nome + '"?')) {
+                        deletarFiltroFirebase(f.id);
+                    }
+                };
+
+                div.appendChild(cb);
+                div.appendChild(nome);
+                div.appendChild(delayLabel);
+                div.appendChild(btnEdit);
+                div.appendChild(btnDel);
+                container.appendChild(div);
+            });
+
+            lucide.createIcons();
+        }
+
+        /*
+          aplicarFiltro: quando um checkbox de filtro é marcado/desmarcado,
+          marca o filtro para participar da sequência de giros.
+          Não altera a roleta visualmente — a seleção das cartas
+          acontece apenas na hora do giro (auto-chain ou giro único).
+        */
+        function aplicarFiltro(filterId, checked) {
+            const cb = document.querySelector(`.filter-cb[data-filter-id="${filterId}"]`);
+            if (!cb) return;
+            const item = cb.closest('.filter-item');
+            if (item) {
+                item.classList.toggle('checked', checked);
+            }
+        }
+
+        /*
+          renderFilterModalCards: preenche o modal de criação com
+          todas as cartas disponíveis (excluindo Survival/Mirror),
+          agrupadas por categoria.
+        */
+        function renderFilterModalCards() {
+            const container = document.getElementById('filter-modal-cards');
+            if (!container) return;
+            container.innerHTML = '';
+
+            const cats = ['Classes', 'Lanes', 'Especiais', 'Proibições', 'Custom'];
+            cats.forEach(cat => {
+                const modos = fullModosData.filter(m => m.cat === cat && !EXCLUDED_MODOS.includes(m.id));
+                if (modos.length === 0) return;
+
+                const title = document.createElement('div');
+                title.className = 'filter-modal-cat-title';
+                title.textContent = cat;
+                container.appendChild(title);
+
+                modos.forEach(modo => {
+                    const label = document.createElement('label');
+                    label.className = 'filter-card-cb';
+                    const cb = document.createElement('input');
+                    cb.type = 'checkbox';
+                    cb.value = modo.id;
+                    cb.className = 'filter-card-input';
+                    label.appendChild(cb);
+                    label.appendChild(document.createTextNode(modo.nome));
+                    container.appendChild(label);
+                });
+            });
+        }
+
+        /*
+          Modal controls: abrir e fechar o modal de criação/edição de filtro.
+        */
+        function abrirModalEdicao(filter) {
+            editandoFiltroId = filter.id;
+            document.getElementById('filter-nome-input').value = filter.nome;
+            document.getElementById('filter-delay-input').value = filter.delay || 20;
+            document.querySelectorAll('.filter-card-input').forEach(cb => {
+                cb.checked = filter.modeIds.includes(cb.value);
+            });
+            document.getElementById('btn-salvar-filtro').textContent = 'Atualizar Filtro';
+            document.getElementById('filter-modal').classList.remove('hidden');
+        }
+
+        document.getElementById('btn-criar-filtro').onclick = () => {
+            editandoFiltroId = null;
+            document.getElementById('filter-nome-input').value = '';
+            document.getElementById('filter-delay-input').value = 20;
+            document.querySelectorAll('.filter-card-input').forEach(cb => cb.checked = false);
+            document.getElementById('btn-salvar-filtro').textContent = 'Salvar Filtro';
+            document.getElementById('filter-modal').classList.remove('hidden');
+        };
+
+        document.getElementById('btn-close-modal').onclick = () => {
+            document.getElementById('filter-modal').classList.add('hidden');
+        };
+
+        document.getElementById('filter-modal').onclick = (e) => {
+            if (e.target === e.currentTarget) {
+                document.getElementById('filter-modal').classList.add('hidden');
+            }
+        };
+
+        document.getElementById('btn-salvar-filtro').onclick = () => {
+            const nome = document.getElementById('filter-nome-input').value.trim();
+            if (!nome) return alert('Digite um nome para o filtro.');
+
+            const modeIds = Array.from(document.querySelectorAll('.filter-card-input:checked')).map(el => el.value);
+            if (modeIds.length === 0) return alert('Selecione pelo menos uma carta para o filtro.');
+
+            const delay = parseInt(document.getElementById('filter-delay-input').value) || 20;
+
+            if (editandoFiltroId) {
+                set(ref(db, 'roleta_filters/' + editandoFiltroId), {
+                    id: editandoFiltroId,
+                    nome,
+                    modeIds,
+                    delay
+                });
+                editandoFiltroId = null;
+            } else {
+                salvarFiltroFirebase(nome, modeIds, delay);
+            }
+            document.getElementById('filter-modal').classList.add('hidden');
+        };
+
+        /*
+          Listener do Firebase: roleta_filters
+          Carrega todos os filtros salvos e renderiza na UI.
+        */
+        onValue(ref(db, 'roleta_filters'), (snapshot) => {
+            const data = snapshot.val();
+            roletaFiltrosData = [];
+            if (data) {
+                Object.keys(data).forEach(key => {
+                    roletaFiltrosData.push(data[key]);
+                });
+            }
+            renderRoletaFilters();
+        });
+
+        /*
+          ==========================================================
+          FIREBASE SYNC - Roleta e Showcase
+          Sincroniza checkboxes, roleta e status do overlay.
+          ==========================================================
+        */
+        const roletaGrid = document.getElementById('roleta-selection-grid');
+
+        /*
+          renderRoletaGrid: renderiza os checkboxes de modos ativos
+          na roleta. Cada checkbox salva as seleções no Firebase.
+        */
+        function renderRoletaGrid() {
+            roletaGrid.innerHTML = '';
+            fullModosData.forEach(modo => {
+                const label = document.createElement('label');
+                label.className = 'mode-item-cb';
+                const isChecked = activeRoletaModos.some(m => m.id === modo.id) ? 'checked' : '';
+                label.innerHTML = `
+                    <input type="checkbox" ${isChecked} value="${modo.id}" class="roleta-cb">
+                    <span>${modo.nome}</span>
+                `;
+                roletaGrid.appendChild(label);
+            });
+
+            // Evento onchange de cada checkbox: salva no Firebase
+            document.querySelectorAll('.roleta-cb').forEach(cb => {
+                cb.onchange = () => {
+                    const ids = Array.from(document.querySelectorAll('.roleta-cb:checked')).map(el => el.value);
+                    set(ref(db, 'roleta_config/active_modes'), ids);
+                };
+            });
+        }
+
+        /*
+          Listener do Firebase: roleta_config/active_modes
+          Mantém activeRoletaModos sincronizado com o banco.
+        */
+        onValue(ref(db, 'roleta_config/active_modes'), (snapshot) => {
+            const ids = snapshot.val();
+            activeRoletaModos = ids ? fullModosData.filter(m => ids.includes(m.id)) : [...fullModosData];
+            document.querySelectorAll('.roleta-cb').forEach(cb => cb.checked = ids ? ids.includes(cb.value) : true);
+            drawWheel();
+        });
+
+        /*
+          Listener do Firebase: showcase
+          Atualiza o status pill (visível/oculto) e destaca
+          o modo ativo na seleção manual.
+        */
+        onValue(ref(db, 'showcase'), (snapshot) => {
+            const data = snapshot.val();
+            document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+            const statusDot = document.getElementById('status-dot');
+            const statusText = document.getElementById('status-text');
+
+            if (data && data.status_exibicao === 'visivel') {
+                statusDot.classList.add('active');
+                statusText.innerText = 'Overlay Visível';
+                // Encontra o modo correspondente no array e destaca
+                const modo = fullModosData.find(m => (data.modo_id && m.id === data.modo_id) || (data.imagem_url && data.imagem_url.includes(m.img)) || m.nome === data.modo_atual);
+                if (modo) document.getElementById(`manual-${modo.id}`)?.classList.add('active');
+            } else {
+                statusDot.classList.remove('active');
+                statusText.innerText = 'Overlay Oculto';
+            }
+        });
+
+        /*
+          Botão "Esconder": oculta o overlay enviando status='oculto'
+          para o Firebase (nó showcase).
+        */
+        document.getElementById('btn-hide-global').onclick = () => set(ref(db, 'showcase'), { status_exibicao: 'oculto' });
+
+        /*
+          ==========================================================
+          AUTO-OCULTAR (TIMER)
+          Configuração de timer para ocultar cartas automaticamente.
+          Salvo em localStorage e sincronizado com Firebase /config.
+          ==========================================================
+        */
+        window.autoHideSeconds = parseInt(localStorage.getItem('autoHideSeconds')) || 0;
+
+        const btnTimerConfig = document.getElementById('btn-timer-config');
+        const timerPopup = document.getElementById('timer-popup');
+
+        btnTimerConfig.onclick = (e) => {
+            e.stopPropagation();
+            timerPopup.classList.toggle('hidden');
+            updateTimerUI();
+        };
+
+        document.addEventListener('click', () => { resetCustomInput(); timerPopup.classList.add('hidden'); });
+
+        timerPopup.onclick = (e) => e.stopPropagation();
+
+        document.querySelectorAll('.timer-option').forEach(btn => {
+            btn.onclick = () => {
+                const secs = parseInt(btn.dataset.seconds);
+                setAutoHide(secs);
+                resetCustomInput();
+                timerPopup.classList.add('hidden');
+            };
+        });
+
+        document.getElementById('btn-timer-custom').onclick = () => {
+            document.getElementById('btn-timer-custom').classList.add('hidden');
+            document.getElementById('timer-custom-input-group').classList.remove('hidden');
+            document.getElementById('timer-custom-input').focus();
+        };
+
+        document.getElementById('btn-timer-custom-set').onclick = () => {
+            const val = parseInt(document.getElementById('timer-custom-input').value);
+            if (val > 0) {
+                setAutoHide(val);
+                resetCustomInput();
+                timerPopup.classList.add('hidden');
+            }
+        };
+
+        document.getElementById('timer-custom-input').onkeydown = (e) => {
+            if (e.key === 'Enter') document.getElementById('btn-timer-custom-set').click();
+        };
+
+        function resetCustomInput() {
+            document.getElementById('btn-timer-custom').classList.remove('hidden');
+            document.getElementById('timer-custom-input-group').classList.add('hidden');
+            document.getElementById('timer-custom-input').value = '';
+        }
+
+        document.getElementById('btn-timer-clear').onclick = () => {
+            setAutoHide(0);
+            resetCustomInput();
+            timerPopup.classList.add('hidden');
+        };
+
+        function setAutoHide(seconds) {
+            window.autoHideSeconds = seconds;
+            localStorage.setItem('autoHideSeconds', seconds);
+            set(ref(db, 'config'), { auto_ocultar_em: seconds || null });
+            updateTimerUI();
+        }
+
+        function updateTimerUI() {
+            const indicator = document.getElementById('timer-current-value');
+            if (indicator) {
+                indicator.textContent = window.autoHideSeconds > 0 ? window.autoHideSeconds + 's' : 'Nunca';
+            }
+            document.querySelectorAll('.timer-option').forEach(b => {
+                b.classList.toggle('active', parseInt(b.dataset.seconds) === window.autoHideSeconds);
+            });
+        }
+
+        /*
+          ==========================================================
+          BOTÕES INSTANT E AUTO DRAFT
+          Funcionalidades avançadas para sortear todas as vagas
+          de uma vez (Instant) ou automaticamente com intervalo (Auto).
+          ==========================================================
+        */
+        const btnInstantDraft = document.getElementById('btn-instant-draft');
+        const btnAutoDraft = document.getElementById('btn-auto-draft');
+        let autoDraftInterval = null;
+        let isAutoMode = false; // Flag para proteger o botão Auto de desabilitar
+
+        /*
+          Intercepta o giro manual para desabilitar os botões
+          Instant e Auto temporariamente enquanto gira.
+        */
+        const originalDraftSpin = draftTriggerSpin.onclick;
+        draftTriggerSpin.onclick = (e) => {
+            if (originalDraftSpin) originalDraftSpin(e);
+
+            btnInstantDraft.disabled = true;
+            // Só bloqueia o botão Auto se não estiver no modo automático
+            if (!isAutoMode) btnAutoDraft.disabled = true;
+        };
+
+        /*
+          fillByesIfNeeded: preenche as vagas restantes com BYEs
+          para completar o número máximo de equipes do bracket.
+          Usado antes dos sorteios Instant e Auto.
+        */
+        function fillByesIfNeeded() {
+            const needed = DRAFT_MAX_TEAMS - drawnTeamsCount - poolTeams.length;
+            if (needed > 0) {
+                for (let i = 0; i < needed; i++) {
+                    const byeTeam = {
+                        id: 'bye_' + Date.now() + '_' + i,
+                        nome: 'BYE',
+                        color: '#52525b',
+                        isBye: true
+                    };
+                    poolTeams.push(byeTeam);
+                    initialTeams.push(byeTeam);
+                }
+                saveDraftState();
+                atualizarRoletaDraftUI();
+            }
+        }
+
+        /*
+          SORTEIO INSTANTÂNEO:
+          Embaralha todos os times restantes (Fisher-Yates) e
+          distribui diretamente nos slots, sem animação de roleta.
+        */
+        btnInstantDraft.addEventListener('click', () => {
+            fillByesIfNeeded();
+            if (poolTeams.length === 0 || draftIsSpinning || isAutoMode) return;
+
+            // Bloqueia todas as interações durante o sorteio
+            btnInstantDraft.disabled = true;
+            btnAutoDraft.disabled = true;
+            draftTriggerSpin.disabled = true;
+            draftTeamInput.disabled = true;
+            document.getElementById('btn-add-team').disabled = true;
+
+            // Embaralha os times (algoritmo Fisher-Yates)
+            let timesParaSortear = [...poolTeams];
+            for (let i = timesParaSortear.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [timesParaSortear[i], timesParaSortear[j]] = [timesParaSortear[j], timesParaSortear[i]];
+            }
+
+            // Distribui cada time no próximo slot disponível
+            timesParaSortear.forEach(winner => {
+                if (drawnTeamsCount >= DRAFT_MAX_TEAMS) return;
+                const slot = drawOrder[drawnTeamsCount];
+                matchData[slot.m][slot.s] = winner;
+                drawnTeamsCount++;
+            });
+
+            poolTeams = [];
+
+            saveDraftState();
+            set(ref(db, 'bracket_data'), { state: matchData, timestamp: Date.now() });
+            atualizarRoletaDraftUI();
+
+            draftWinnerName.innerText = "Sorteio Rápido!";
+            draftWinnerName.style.color = "var(--success)";
+
+            // Avança BYEs automaticamente
+            setTimeout(advanceByes, 500);
+        });
+
+        /*
+          SORTEIO AUTOMÁTICO:
+          Gira a roleta automaticamente a cada ~1 segundo.
+          - Primeiro clique: inicia o modo automático
+          - Segundo clique: pausa o modo automático
+          Quando todos os times são sorteados, para automaticamente.
+        */
+        btnAutoDraft.addEventListener('click', () => {
+            fillByesIfNeeded();
+            if (poolTeams.length === 0 || (draftIsSpinning && !isAutoMode)) return;
+
+            // Se já estiver rodando, PAUSA
+            if (isAutoMode) {
+                isAutoMode = false;
+                clearInterval(autoDraftInterval);
+                autoDraftInterval = null;
+                btnAutoDraft.innerHTML = `<i data-lucide="bot" style="width: 16px;"></i> Auto`;
+                btnAutoDraft.style.borderColor = '#a855f7';
+                btnAutoDraft.style.color = '#a855f7';
+                lucide.createIcons();
+                atualizarRoletaDraftUI();
+                return;
+            }
+
+            // INICIA modo automático
+            isAutoMode = true;
+            btnAutoDraft.innerHTML = `<i data-lucide="pause" style="width: 16px;"></i> Parar`;
+            btnAutoDraft.style.borderColor = '#ef4444';
+            btnAutoDraft.style.color = '#ef4444';
+            btnAutoDraft.disabled = false; // Mantém clicável para permitir pausar
+            lucide.createIcons();
+
+            btnInstantDraft.disabled = true;
+
+            // Dispara o primeiro giro imediatamente
+            if (!draftIsSpinning) draftTriggerSpin.click();
+
+            // Loop que verifica a cada 1s se a roleta parou para girar de novo
+            autoDraftInterval = setInterval(() => {
+                if (poolTeams.length === 0 || drawnTeamsCount >= DRAFT_MAX_TEAMS) {
+                    // Acabou: limpa o intervalo e volta ao estado normal
+                    isAutoMode = false;
+                    clearInterval(autoDraftInterval);
+                    autoDraftInterval = null;
+                    btnAutoDraft.innerHTML = `<i data-lucide="bot" style="width: 16px;"></i> Auto`;
+                    btnAutoDraft.style.borderColor = '#a855f7';
+                    btnAutoDraft.style.color = '#a855f7';
+                    lucide.createIcons();
+                    atualizarRoletaDraftUI();
+                    return;
+                }
+
+                if (!draftIsSpinning && isAutoMode) {
+                    draftTriggerSpin.click();
+                }
+            }, 1000);
+        });
+
+        /*
+          Sobrescreve atualizarRoletaDraftUI para gerenciar
+          corretamente o estado dos botões Instant e Auto.
+        */
+        const originalAtualizarRoleta = atualizarRoletaDraftUI;
+        atualizarRoletaDraftUI = function () {
+            originalAtualizarRoleta();
+
+            setTimeout(() => {
+                const disabledState = poolTeams.length === 0 || drawnTeamsCount >= DRAFT_MAX_TEAMS || draftIsSpinning;
+                if (btnInstantDraft) btnInstantDraft.disabled = disabledState;
+
+                // No modo automático, o botão Auto nunca desativa (para poder pausar)
+                if (btnAutoDraft) {
+                    btnAutoDraft.disabled = isAutoMode ? false : disabledState;
+                }
+            }, 100);
+        };
+
+        /*
+          exportarBracketJPG: captura o bracket com html2canvas
+          e baixa como imagem JPG.
+        */
+        function exportarBracketJPG() {
+            const el = document.querySelector('.bracket-wrapper');
+            if (!el) return;
+            html2canvas(el, {
+                scale: 2,
+                useCORS: true,
+                backgroundColor: '#1a1a2e'
+            }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = 'chaveamento_' + Date.now() + '.jpg';
+                link.href = canvas.toDataURL('image/jpeg', 0.95);
+                link.click();
+            }).catch(err => {
+                console.error('Erro ao gerar JPG:', err);
+                alert('Erro ao gerar a imagem.');
+            });
+        }
+
+        /*
+          syncDraftToFirebase: salva o estado completo do draft
+          no Firebase (nó /draft_data/saved) para backup na nuvem.
+        */
+        function syncDraftToFirebase() {
+            const data = {
+                bracketSize: currentBracketSize,
+                initialTeams,
+                poolTeams,
+                drawnTeamsCount,
+                matchData,
+                timestamp: Date.now()
+            };
+            set(ref(db, 'draft_data/saved'), data).then(() => {
+                const ts = new Date(data.timestamp).toLocaleString('pt-BR');
+                document.getElementById('winner-name').innerText = 'Draft sincronizado! ' + ts;
+                document.getElementById('winner-name').style.color = 'var(--success)';
+            }).catch(err => {
+                console.error('Erro ao sincronizar draft:', err);
+                alert('Erro ao sincronizar com Firebase.');
+            });
+        }
+
+        /*
+          loadDraftFromFirebase: carrega o draft salvo no Firebase
+          e restaura no estado local (substitui o localStorage).
+        */
+        function loadDraftFromFirebase() {
+            get(ref(db, 'draft_data/saved')).then(snap => {
+                const data = snap.val();
+                if (!data || !data.matchData) {
+                    return alert('Nenhum draft salvo encontrado no Firebase.');
+                }
+
+                currentBracketSize = data.bracketSize || 8;
+                DRAFT_MAX_TEAMS = currentBracketSize;
+                initialTeams = data.initialTeams || [];
+                poolTeams = data.poolTeams || [];
+                drawnTeamsCount = data.drawnTeamsCount || 0;
+                matchData = data.matchData;
+
+                localStorage.setItem('mlbb_bracket_size', currentBracketSize.toString());
+                saveDraftState();
+                drawOrder = getBracketTemplates(currentBracketSize).dOrder;
+
+                document.getElementById('size-select').value = currentBracketSize;
+
+                atualizarRoletaDraftUI();
+                renderBracket();
+                drawDraftWheel();
+
+                const ts = new Date(data.timestamp).toLocaleString('pt-BR');
+                document.getElementById('winner-name').innerText = 'Draft restaurado de ' + ts;
+                document.getElementById('winner-name').style.color = 'var(--success)';
+            }).catch(err => {
+                console.error('Erro ao carregar draft:', err);
+                alert('Erro ao carregar draft do Firebase.');
+            });
+        }
+
+        /*
+          ==========================================================
+          INICIALIZAÇÃO
+          - Desenha a roleta
+          - Renderiza a UI do draft
+          - Cria os ícones Lucide
+          ==========================================================
+        */
+        document.getElementById('btn-sync-draft').onclick = () => syncDraftToFirebase();
+        document.getElementById('btn-store-draft').onclick = () => loadDraftFromFirebase();
+
+        drawWheel();
+        atualizarRoletaDraftUI();
+        renderFilterModalCards();
+        lucide.createIcons();
+    </script>
+</body>
+
+</html>

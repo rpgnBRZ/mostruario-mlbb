@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel de Controle MLBB</title>
+    
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        :root {
+            --background: #09090b;
+            --foreground: #fafafa;
+            --surface: #18181b;
+            --surface-hover: #27272a;
+            --primary: #d4af37; /* Gold accent */
+            --primary-hover: #fcd34d;
+            --primary-foreground: #000000;
+            --muted: #27272a;
+            --muted-foreground: #a1a1aa;
+            --border: #27272a;
+            --danger: #ef4444;
+            --danger-hover: #dc2626;
+            --success: #22c55e;
+            --radius-md: 8px;
+            --radius-sm: 6px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--background);
+            color: var(--foreground);
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+            overflow-y: scroll;
+        }
+
+        /* Top Navigation Header */
+        header {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background-color: rgba(9, 9, 11, 0.8);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .header-title i {
+            color: var(--primary);
+        }
+
+        .header-title h1 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            letter-spacing: -0.025em;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+            color: var(--muted-foreground);
+            background: var(--surface);
+            padding: 0.5rem 1rem;
+            border-radius: 999px;
+            border: 1px solid var(--border);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--danger);
+            box-shadow: 0 0 8px var(--danger);
+            transition: background-color 0.3s, box-shadow 0.3s;
+        }
+
+        .status-dot.active {
+            background-color: var(--success);
+            box-shadow: 0 0 8px var(--success);
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            border-radius: var(--radius-md);
+            border: 1px solid transparent;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+
+        .btn:focus-visible {
+            outline: 2px solid var(--primary);
+            outline-offset: 2px;
+        }
+
+        .btn-danger {
+            background-color: var(--danger);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background-color: var(--danger-hover);
+        }
+
+        /* Main Content Layout */
+        main {
+            padding: 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .categories-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            align-items: start;
+        }
+
+        /* Category Section */
+        .category-section {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            overflow: hidden;
+        }
+
+        .category-header {
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid var(--border);
+            background: rgba(255, 255, 255, 0.02);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .category-header h2 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--foreground);
+        }
+
+        .category-header i {
+            color: var(--muted-foreground);
+            width: 18px;
+            height: 18px;
+        }
+
+        .modes-list {
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        /* Mode Button */
+        .mode-btn {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--foreground);
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: left;
+        }
+
+        .mode-btn-content {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .mode-btn i {
+            width: 16px;
+            height: 16px;
+            color: var(--muted-foreground);
+        }
+
+        .mode-btn:hover {
+            background: var(--surface-hover);
+            border-color: var(--muted-foreground);
+        }
+
+        /* Active State */
+        .mode-btn.active {
+            background: rgba(212, 175, 55, 0.1);
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .mode-btn.active i {
+            color: var(--primary);
+        }
+
+        .active-badge {
+            display: none;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            background: var(--primary);
+            color: var(--primary-foreground);
+            padding: 0.1rem 0.4rem;
+            border-radius: 4px;
+            font-weight: 700;
+        }
+
+        .mode-btn.active .active-badge {
+            display: inline-block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            header {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 1rem;
+                padding: 1rem;
+            }
+            .header-actions {
+                display: flex;
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+            .btn {
+                width: 100%;
+            }
+            main {
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="header-title">
+            <i data-lucide="gamepad-2"></i>
+            <h1>Painel Operacional MLBB</h1>
+        </div>
+        <div class="header-actions" style="display: flex; gap: 1rem; align-items: center;">
+            <div class="status-indicator">
+                <div id="status-dot" class="status-dot"></div>
+                <span id="status-text">Overlay Oculto</span>
+            </div>
+            <button id="btn-hide" class="btn btn-danger">
+                <i data-lucide="eye-off"></i> Esconder Overlay
+            </button>
+        </div>
+    </header>
+
+    <main>
+        <div id="categories-container" class="categories-grid">
+            <!-- Content injected via JS -->
+        </div>
+    </main>
+
+    <script type="module">
+        import { db, ref, set, onValue } from './firebase-config.js';
+
+        const pastaImagens = 'assets/';
+
+        // Data definition with categories and icons
+        const modosData = [
+            // Especiais
+            { id: 'bot', nome: 'Substituído por Bot', img: 'CARTA_DO_ROBO-substituido_por_boot.jpeg', cat: 'Especiais', icon: 'bot' },
+            { id: 'impostor', nome: 'Impostor', img: 'DEIXA_QUE_EU_ESCOLHO-impostor.jpeg', cat: 'Especiais', icon: 'user-x' },
+            { id: 'capitao', nome: 'Capitão Escolhe', img: 'deixa_que_eu_escolho.jpeg', cat: 'Especiais', icon: 'crown' },
+            
+            // Classes
+            { id: 'apenas-magos', nome: 'Apenas Magos', img: 'APENAS_UNICO(A)-apenas-magos.jpeg', cat: 'Classes', icon: 'wand-2' },
+            { id: 'apenas-suporte', nome: 'Apenas Suporte', img: 'APENAS_UNICO(A)-apenas-suporte.jpeg', cat: 'Classes', icon: 'heart-handshake' },
+            { id: 'classe-atirador', nome: 'Classe Atirador', img: 'APENAS_UNICO(A)-classe_atirador.jpeg', cat: 'Classes', icon: 'crosshair' },
+            { id: 'classe-mago', nome: 'Classe Mago', img: 'APENAS_UNICO(A)-classe_mago.jpeg', cat: 'Classes', icon: 'sparkles' },
+            { id: 'classe-tank', nome: 'Classe Tank', img: 'APENAS_UNICO(A)-classe_tank.jpeg', cat: 'Classes', icon: 'shield' },
+            
+            // Lanes
+            { id: 'lane-mid', nome: 'Lane Mid', img: 'APENAS_UNICO(A)-lane_mid.jpeg', cat: 'Lanes', icon: 'map' },
+            { id: 'lane-ouro', nome: 'Lane Ouro', img: 'APENAS_UNICO(A)-lane_ouro.jpeg', cat: 'Lanes', icon: 'coins' },
+            { id: 'lane-xp', nome: 'Lane XP', img: 'APENAS_UNICO(A)-lane_xp.jpeg', cat: 'Lanes', icon: 'swords' },
+            
+            // Proibições
+            { id: 'proibido-executar', nome: 'Proibido Executar', img: 'EU_PROIBO-feitiço-executar.jpeg', cat: 'Proibições', icon: 'ban' },
+            { id: 'proibido-petrificar', nome: 'Proibido Petrificar', img: 'EU_PROIBO-feitiço-petrificar.jpeg', cat: 'Proibições', icon: 'ban' },
+            { id: 'proibido-smite', nome: 'Proibido Smite', img: 'EU_PROIBO-feitiço-smite.jpeg', cat: 'Proibições', icon: 'ban' },
+            { id: 'proibido-flash', nome: 'Proibido Flash', img: 'EU_PROIBO-feito-flash.jpeg', cat: 'Proibições', icon: 'ban' },
+            { id: 'mid-bloqueada', nome: 'Mid Bloqueada', img: 'EU_PROIBO-lane_mid_bloqueada.jpeg', cat: 'Proibições', icon: 'lock' },
+            { id: 'ouro-bloqueada', nome: 'Ouro Bloqueada', img: 'EU_PROIBO-lane_ouro.jpeg', cat: 'Proibições', icon: 'lock' },
+            { id: 'xp-bloqueada', nome: 'XP Bloqueada', img: 'EU_PROIBO-lane_xp.jpeg', cat: 'Proibições', icon: 'lock' },
+            { id: 'lord-proibido', nome: 'Lord Proibido', img: 'EU_PROIBO-lord.jpeg', cat: 'Proibições', icon: 'skull' },
+            { id: 'suportes-banidos', nome: 'Suportes Banidos', img: 'EU_PROIBO-suportes_banidos.jpeg', cat: 'Proibições', icon: 'user-minus' },
+            { id: 'tanks-banidos', nome: 'Tanks Banidos', img: 'EU_PROIBO-tanks_banidos.jpeg', cat: 'Proibições', icon: 'user-minus' },
+            { id: 'sem-comunicacao', nome: 'Sem Comunicação', img: 'EU_PROIBO-comunicação.jpeg', cat: 'Proibições', icon: 'mic-off' }
+        ];
+
+        // Category configurations
+        const categories = {
+            'Especiais': { icon: 'star' },
+            'Classes': { icon: 'swords' },
+            'Lanes': { icon: 'map' },
+            'Proibições': { icon: 'shield-alert' }
+        };
+
+        const container = document.getElementById('categories-container');
+        let currentActiveMode = null;
+
+        // Render UI
+        function renderUI() {
+            Object.keys(categories).forEach(catName => {
+                const catModes = modosData.filter(m => m.cat === catName);
+                if (catModes.length === 0) return;
+
+                // Create category section
+                const section = document.createElement('div');
+                section.className = 'category-section';
+
+                const header = document.createElement('div');
+                header.className = 'category-header';
+                header.innerHTML = `<i data-lucide="${categories[catName].icon}"></i> <h2>${catName}</h2>`;
+                
+                const list = document.createElement('div');
+                list.className = 'modes-list';
+
+                catModes.forEach(modo => {
+                    const btn = document.createElement('button');
+                    btn.className = 'mode-btn';
+                    btn.id = `btn-${modo.id}`;
+                    
+                    btn.innerHTML = `
+                        <div class="mode-btn-content">
+                            <i data-lucide="${modo.icon}"></i>
+                            <span>${modo.nome}</span>
+                        </div>
+                        <span class="active-badge">Ativo</span>
+                    `;
+
+                    btn.onclick = () => ativarModo(modo);
+                    list.appendChild(btn);
+                });
+
+                section.appendChild(header);
+                section.appendChild(list);
+                container.appendChild(section);
+            });
+
+            lucide.createIcons();
+        }
+
+        // Action: Set Mode
+        function ativarModo(modo) {
+            set(ref(db, 'showcase'), {
+                modo_atual: modo.nome,
+                descricao: "Regra ativa para esta partida!",
+                imagem_url: pastaImagens + modo.img,
+                status_exibicao: 'visivel'
+            });
+        }
+
+        // Action: Hide
+        document.getElementById('btn-hide').onclick = () => {
+            set(ref(db, 'showcase'), {
+                status_exibicao: 'oculto'
+            });
+        };
+
+        // Real-time listener for UI state updates
+        const showcaseRef = ref(db, 'showcase');
+        onValue(showcaseRef, (snapshot) => {
+            const data = snapshot.val();
+            
+            // Reset all active states
+            document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
+            
+            const statusDot = document.getElementById('status-dot');
+            const statusText = document.getElementById('status-text');
+
+            if (data && data.status_exibicao === 'visivel') {
+                statusDot.classList.add('active');
+                statusText.innerText = 'Overlay Visível';
+
+                // Find and highlight active button
+                const activeModo = modosData.find(m => m.nome === data.modo_atual);
+                if (activeModo) {
+                    const btn = document.getElementById(`btn-${activeModo.id}`);
+                    if (btn) btn.classList.add('active');
+                }
+            } else {
+                statusDot.classList.remove('active');
+                statusText.innerText = 'Overlay Oculto';
+            }
+        });
+
+        // Initialize
+        renderUI();
+    </script>
+</body>
+</html>

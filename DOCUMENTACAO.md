@@ -1,4 +1,4 @@
-# Mostruário MLBB — Documentação do Projeto.
+# Mostruário MLBB — Documentação do Projeto
 
 Sistema de dashboard e overlay para partidas customizadas de **Mobile Legends: Bang Bang (MLBB)**. Permite sortear modos de jogo aleatórios (cartas), exibir em overlay na stream, e gerenciar torneios com chaves de dupla eliminação.
 

@@ -1860,10 +1860,10 @@
                         <div style="display: flex; gap: 0.5rem; margin-top: 0.75rem;">
                             <button type="button" id="btn-sync-draft" class="btn-action"
                                 style="flex:1; background: rgba(168,85,247,0.1); border:1px dashed #a855f7; color:#a855f7; padding:0.6rem; font-size:0.85rem; border-radius:8px; cursor:pointer; font-weight:600; display:flex; align-items:center; justify-content:center; gap:0.4rem;"
-                                title="Salvar draft no Firebase"><i data-lucide="cloud" style="width:16px;"></i> Sincronizar</button>
+                                title="Restaurar draft do Firebase"><i data-lucide="download-cloud" style="width:16px;"></i> Sincronizar</button>
                             <button type="button" id="btn-store-draft" class="btn-action"
                                 style="flex:1; background: rgba(251,191,36,0.1); border:1px dashed #fbbf24; color:#fbbf24; padding:0.6rem; font-size:0.85rem; border-radius:8px; cursor:pointer; font-weight:600; display:flex; align-items:center; justify-content:center; gap:0.4rem;"
-                                title="Restaurar draft do Firebase"><i data-lucide="download-cloud" style="width:16px;"></i> Armazenar</button>
+                                title="Salvar draft no Firebase"><i data-lucide="cloud" style="width:16px;"></i> Armazenar</button>
                         </div>
                         <!-- Botões Reiniciar e Apagar -->
                         <div style="display: flex; gap: 0.5rem; margin-top: 0.75rem;">
@@ -3693,8 +3693,8 @@
             };
             set(ref(db, 'draft_data/saved'), data).then(() => {
                 const ts = new Date(data.timestamp).toLocaleString('pt-BR');
-                document.getElementById('winner-name').innerText = 'Draft sincronizado! ' + ts;
-                document.getElementById('winner-name').style.color = 'var(--success)';
+                document.getElementById('draft-winner-name').innerText = 'Draft sincronizado! ' + ts;
+                document.getElementById('draft-winner-name').style.color = 'var(--success)';
             }).catch(err => {
                 console.error('Erro ao sincronizar draft:', err);
                 alert('Erro ao sincronizar com Firebase.');
@@ -3723,15 +3723,15 @@
                 saveDraftState();
                 drawOrder = getBracketTemplates(currentBracketSize).dOrder;
 
-                document.getElementById('size-select').value = currentBracketSize;
+                document.getElementById('bracket-size-select').value = currentBracketSize;
 
                 atualizarRoletaDraftUI();
                 renderBracket();
                 drawDraftWheel();
 
                 const ts = new Date(data.timestamp).toLocaleString('pt-BR');
-                document.getElementById('winner-name').innerText = 'Draft restaurado de ' + ts;
-                document.getElementById('winner-name').style.color = 'var(--success)';
+                document.getElementById('draft-winner-name').innerText = 'Draft restaurado de ' + ts;
+                document.getElementById('draft-winner-name').style.color = 'var(--success)';
             }).catch(err => {
                 console.error('Erro ao carregar draft:', err);
                 alert('Erro ao carregar draft do Firebase.');
@@ -3746,8 +3746,8 @@
           - Cria os ícones Lucide
           ==========================================================
         */
-        document.getElementById('btn-sync-draft').onclick = () => syncDraftToFirebase();
-        document.getElementById('btn-store-draft').onclick = () => loadDraftFromFirebase();
+        document.getElementById('btn-sync-draft').onclick = () => loadDraftFromFirebase();
+        document.getElementById('btn-store-draft').onclick = () => syncDraftToFirebase();
 
         drawWheel();
         atualizarRoletaDraftUI();

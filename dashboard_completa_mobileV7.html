@@ -997,6 +997,64 @@
         }
 
         /*
+          Dropdown do menu de ações do draft.
+        */
+        .draft-dropdown {
+            display: none;
+            position: absolute;
+            top: 100%;
+            right: 0;
+            margin-top: 0.5rem;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 0.5rem;
+            min-width: 220px;
+            z-index: 100;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+        }
+        .draft-dropdown.show {
+            display: block;
+        }
+        .draft-dropdown button {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            width: 100%;
+            padding: 0.6rem 0.8rem;
+            background: none;
+            border: none;
+            color: var(--foreground);
+            font-size: 0.85rem;
+            border-radius: 6px;
+            cursor: pointer;
+            text-align: left;
+            transition: background 0.15s;
+        }
+        .draft-dropdown button:hover {
+            background: var(--surface-hover);
+        }
+        .draft-dropdown hr {
+            border: none;
+            border-top: 1px solid var(--border);
+            margin: 0.4rem 0;
+        }
+        .draft-dropdown-toggle {
+            background: none;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 0.2rem 0.4rem;
+            cursor: pointer;
+            font-size: 1.1rem;
+            line-height: 1;
+            transition: background 0.15s;
+            color: var(--foreground);
+        }
+        .draft-dropdown-toggle:hover {
+            background: var(--surface-hover);
+        }
+
+        /*
           Scrollbar customizada para a lista de equipes.
         */
         .teams-list::-webkit-scrollbar {
@@ -1568,8 +1626,7 @@
             .zoom-controls,
             #btn-print-bracket,
             #btn-export-jpg,
-            #btn-sync-draft,
-            #btn-store-draft,
+            #btn-draft-menu,
             .undo-btn,
             .check-icon-winner {
                 display: none !important;
@@ -1840,7 +1897,18 @@
                 <div class="draft-controls">
                     <!-- Cartão: Adicionar Equipe -->
                     <div class="card">
-                        <h2><i data-lucide="users"></i> Adicionar Equipe</h2>
+                        <h2 style="margin-bottom: 0.5rem;"><i data-lucide="users"></i> Adicionar Equipe
+                            <div style="position: relative; margin-left: auto;">
+                                <button type="button" id="btn-draft-menu" class="draft-dropdown-toggle" title="Ações do Draft"><i data-lucide="folder"></i></button>
+                                <div id="draft-dropdown" class="draft-dropdown">
+                                    <button type="button" id="btn-draft-store-firebase"><i data-lucide="cloud-upload" style="width:16px;"></i> Armazenar com Firebase</button>
+                                    <button type="button" id="btn-draft-sync-firebase"><i data-lucide="cloud-download" style="width:16px;"></i> Sincronizar com Firebase</button>
+                                    <hr>
+                                    <button type="button" id="btn-draft-export"><i data-lucide="file-down" style="width:16px;"></i> Export Draft</button>
+                                    <button type="button" id="btn-draft-import"><i data-lucide="file-up" style="width:16px;"></i> Import Draft</button>
+                                </div>
+                            </div>
+                        </h2>
                         <!-- Input + botões Add e BYE -->
                         <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
                             <input type="text" id="draft-team-input" placeholder="Nome da equipe/jogador..."
@@ -1855,15 +1923,6 @@
                         <div id="teams-container" class="teams-list"
                             style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 200px; overflow-y: auto; padding-right: 0.5rem;">
                             <div style="color: #71717a; font-size: 0.85rem; text-align: center;">Vazio</div>
-                        </div>
-                        <!-- Botões Sincronizar e Armazenar -->
-                        <div style="display: flex; gap: 0.5rem; margin-top: 0.75rem;">
-                            <button type="button" id="btn-sync-draft" class="btn-action"
-                                style="flex:1; background: rgba(168,85,247,0.1); border:1px dashed #a855f7; color:#a855f7; padding:0.6rem; font-size:0.85rem; border-radius:8px; cursor:pointer; font-weight:600; display:flex; align-items:center; justify-content:center; gap:0.4rem;"
-                                title="Restaurar draft do Firebase"><i data-lucide="download-cloud" style="width:16px;"></i> Sincronizar</button>
-                            <button type="button" id="btn-store-draft" class="btn-action"
-                                style="flex:1; background: rgba(251,191,36,0.1); border:1px dashed #fbbf24; color:#fbbf24; padding:0.6rem; font-size:0.85rem; border-radius:8px; cursor:pointer; font-weight:600; display:flex; align-items:center; justify-content:center; gap:0.4rem;"
-                                title="Salvar draft no Firebase"><i data-lucide="cloud" style="width:16px;"></i> Armazenar</button>
                         </div>
                         <!-- Botões Reiniciar e Apagar -->
                         <div style="display: flex; gap: 0.5rem; margin-top: 0.75rem;">
@@ -3739,6 +3798,73 @@
         }
 
         /*
+          exportDraftToFile: serializa o estado do draft
+          e faz download como arquivo JSON.
+        */
+        function exportDraftToFile() {
+            const data = {
+                bracketSize: currentBracketSize,
+                initialTeams,
+                poolTeams,
+                drawnTeamsCount,
+                matchData,
+                timestamp: Date.now()
+            };
+            const json = JSON.stringify(data, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'draft_' + new Date().toISOString().slice(0, 10) + '.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        /*
+          importDraftFromFile: abre seletor de arquivo,
+          lê o JSON e restaura o estado do draft.
+        */
+        function importDraftFromFile() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.onchange = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    try {
+                        const data = JSON.parse(ev.target.result);
+                        if (!data || !data.matchData || !data.initialTeams) {
+                            return alert('Arquivo inválido: estrutura de draft não encontrada.');
+                        }
+                        currentBracketSize = data.bracketSize || 8;
+                        DRAFT_MAX_TEAMS = currentBracketSize;
+                        initialTeams = data.initialTeams || [];
+                        poolTeams = data.poolTeams || [];
+                        drawnTeamsCount = data.drawnTeamsCount || 0;
+                        matchData = data.matchData;
+                        localStorage.setItem('mlbb_bracket_size', currentBracketSize.toString());
+                        saveDraftState();
+                        drawOrder = getBracketTemplates(currentBracketSize).dOrder;
+                        document.getElementById('bracket-size-select').value = currentBracketSize;
+                        atualizarRoletaDraftUI();
+                        renderBracket();
+                        drawDraftWheel();
+                        document.getElementById('draft-winner-name').innerText = 'Draft importado de ' + file.name;
+                        document.getElementById('draft-winner-name').style.color = 'var(--success)';
+                    } catch (err) {
+                        alert('Erro ao ler arquivo: ' + err.message);
+                    }
+                };
+                reader.readAsText(file);
+            };
+            input.click();
+        }
+
+        /*
           ==========================================================
           INICIALIZAÇÃO
           - Desenha a roleta
@@ -3746,8 +3872,31 @@
           - Cria os ícones Lucide
           ==========================================================
         */
-        document.getElementById('btn-sync-draft').onclick = () => loadDraftFromFirebase();
-        document.getElementById('btn-store-draft').onclick = () => syncDraftToFirebase();
+        document.getElementById('btn-draft-menu').onclick = (e) => {
+            e.stopPropagation();
+            document.getElementById('draft-dropdown').classList.toggle('show');
+        };
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('#draft-dropdown') && !e.target.closest('#btn-draft-menu')) {
+                document.getElementById('draft-dropdown').classList.remove('show');
+            }
+        });
+        document.getElementById('btn-draft-store-firebase').addEventListener('click', (e) => {
+            e.stopPropagation();
+            syncDraftToFirebase();
+        });
+        document.getElementById('btn-draft-sync-firebase').addEventListener('click', (e) => {
+            e.stopPropagation();
+            loadDraftFromFirebase();
+        });
+        document.getElementById('btn-draft-export').addEventListener('click', (e) => {
+            e.stopPropagation();
+            exportDraftToFile();
+        });
+        document.getElementById('btn-draft-import').addEventListener('click', (e) => {
+            e.stopPropagation();
+            importDraftFromFile();
+        });
 
         drawWheel();
         atualizarRoletaDraftUI();

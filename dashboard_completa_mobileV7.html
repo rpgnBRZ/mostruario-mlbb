@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
   ====================================================================
-  dashboard_completa_mobileV6.html
+  dashboard_completa_mobileV7.html
   Dashboard completa para gerenciamento de partidas de Mobile Legends:
   Bang Bang (MLBB). Possui 4 abas principais:
     - Manual     : Seleção manual de cartas/modos
@@ -37,7 +37,7 @@
       Biblioteca de ícones SVG via atributo data-lucide.
       Inicializada com lucide.createIcons() no final do script.
     -->
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://unpkg.com/lucide@1.24.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 
     <style>
@@ -630,7 +630,7 @@
             max-width: 560px;
             max-height: 80vh;
             overflow-y: auto;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
         }
 
         .filter-modal::-webkit-scrollbar {
@@ -758,7 +758,7 @@
             border-radius: var(--radius);
             padding: 1rem;
             z-index: 100;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
             animation: fadeIn 0.2s ease;
         }
 
@@ -1011,11 +1011,13 @@
             padding: 0.5rem;
             min-width: 220px;
             z-index: 100;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
         }
+
         .draft-dropdown.show {
             display: block;
         }
+
         .draft-dropdown button {
             display: flex;
             align-items: center;
@@ -1031,14 +1033,17 @@
             text-align: left;
             transition: background 0.15s;
         }
+
         .draft-dropdown button:hover {
             background: var(--surface-hover);
         }
+
         .draft-dropdown hr {
             border: none;
             border-top: 1px solid var(--border);
             margin: 0.4rem 0;
         }
+
         .draft-dropdown-toggle {
             background: none;
             border: 1px solid var(--border);
@@ -1050,6 +1055,7 @@
             transition: background 0.15s;
             color: var(--foreground);
         }
+
         .draft-dropdown-toggle:hover {
             background: var(--surface-hover);
         }
@@ -1166,6 +1172,149 @@
             transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
             min-width: 1000px;
             padding-bottom: 2rem;
+        }
+
+        /*
+          ==========================================================
+          MODAL DE PRÉ-VISUALIZAÇÃO DO BRACKET
+          Fullscreen overlay com viewport próprio, zoom e exportação.
+          ==========================================================
+        */
+        .preview-bracket-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+        .preview-bracket-overlay.hidden {
+            display: none;
+        }
+        .preview-bracket-modal {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            width: 95%;
+            max-width: 1400px;
+            max-height: 95vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+        .preview-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+        .preview-header h3 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.2rem;
+            color: var(--foreground);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .preview-close-btn {
+            background: none;
+            border: none;
+            color: var(--muted-foreground);
+            font-size: 1.8rem;
+            cursor: pointer;
+            line-height: 1;
+            padding: 0.25rem;
+            transition: color 0.2s;
+        }
+        .preview-close-btn:hover {
+            color: var(--foreground);
+        }
+        .preview-viewport {
+            flex: 1;
+            overflow: auto;
+            padding: 2rem;
+            background: var(--background);
+            cursor: grab;
+            min-height: 400px;
+            position: relative;
+        }
+        .preview-viewport:active {
+            cursor: grabbing;
+        }
+        .preview-viewport::-webkit-scrollbar {
+            height: 8px;
+            width: 8px;
+        }
+        .preview-viewport::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 4px;
+        }
+        .preview-content {
+            transform-origin: top left;
+            transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+            min-width: 800px;
+        }
+        .preview-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem 1.5rem;
+            border-top: 1px solid var(--border);
+            flex-shrink: 0;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+        }
+        .preview-zoom-controls {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+        .preview-zoom-controls .btn-zoom {
+            background: var(--background);
+            color: var(--foreground);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 0.4rem 0.7rem;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: 0.2s;
+        }
+        .preview-zoom-controls .btn-zoom:hover {
+            background: var(--surface-hover);
+            color: var(--primary);
+        }
+        #preview-zoom-label {
+            font-size: 0.8rem;
+            color: var(--muted-foreground);
+            min-width: 40px;
+            text-align: center;
+        }
+        .preview-actions {
+            display: flex;
+            gap: 0.75rem;
+        }
+        .preview-actions .btn-action {
+            padding: 0.6rem 1.2rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.85rem;
+            transition: 0.2s;
+            border: 1px dashed;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            background: none;
+        }
+        .preview-actions .btn-action:hover {
+            filter: brightness(1.2);
         }
 
         /*
@@ -1624,9 +1773,7 @@
               Oculta controles de zoom, botão de imprimir, e botões de ação.
             */
             .zoom-controls,
-            #btn-print-bracket,
-            #btn-export-jpg,
-            #btn-draft-menu,
+            .preview-bracket-overlay,
             .undo-btn,
             .check-icon-winner {
                 display: none !important;
@@ -1844,22 +1991,33 @@
                     <!-- Modal para criar/editar filtro -->
                     <div id="filter-modal" class="filter-modal-overlay hidden">
                         <div class="filter-modal">
-                            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
-                                <h3 style="color:var(--primary);font-family:'Outfit';display:flex;align-items:center;gap:0.5rem;">
+                            <div
+                                style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+                                <h3
+                                    style="color:var(--primary);font-family:'Outfit';display:flex;align-items:center;gap:0.5rem;">
                                     <i data-lucide="filter"></i> Criar Filtro
                                 </h3>
-                                <button id="btn-close-modal" style="background:none;border:none;color:var(--muted-foreground);cursor:pointer;font-size:1.5rem;line-height:1;">&times;</button>
+                                <button id="btn-close-modal"
+                                    style="background:none;border:none;color:var(--muted-foreground);cursor:pointer;font-size:1.5rem;line-height:1;">&times;</button>
                             </div>
                             <div style="margin-bottom:1rem;">
-                                <label style="display:block;font-size:0.85rem;color:var(--muted-foreground);font-weight:500;margin-bottom:0.5rem;">Nome do Filtro</label>
-                                <input type="text" id="filter-nome-input" placeholder="Ex: Filtro X1" style="width:100%;padding:0.85rem;border-radius:8px;border:1px solid var(--border);background:var(--background);color:var(--foreground);outline:none;">
+                                <label
+                                    style="display:block;font-size:0.85rem;color:var(--muted-foreground);font-weight:500;margin-bottom:0.5rem;">Nome
+                                    do Filtro</label>
+                                <input type="text" id="filter-nome-input" placeholder="Ex: Filtro X1"
+                                    style="width:100%;padding:0.85rem;border-radius:8px;border:1px solid var(--border);background:var(--background);color:var(--foreground);outline:none;">
                             </div>
                             <div id="filter-modal-cards" class="filter-modal-grid"></div>
                             <div style="margin:1rem 0;">
-                                <label style="display:block;font-size:0.85rem;color:var(--muted-foreground);font-weight:500;margin-bottom:0.5rem;">Delay entre giros (segundos)</label>
-                                <input type="number" id="filter-delay-input" value="20" min="1" max="999" style="width:100px;padding:0.5rem;border-radius:8px;border:1px solid var(--border);background:var(--background);color:var(--foreground);outline:none;">
+                                <label
+                                    style="display:block;font-size:0.85rem;color:var(--muted-foreground);font-weight:500;margin-bottom:0.5rem;">Delay
+                                    entre giros (segundos)</label>
+                                <input type="number" id="filter-delay-input" value="20" min="1" max="999"
+                                    style="width:100px;padding:0.5rem;border-radius:8px;border:1px solid var(--border);background:var(--background);color:var(--foreground);outline:none;">
                             </div>
-                            <button id="btn-salvar-filtro" style="width:100%;background:var(--primary);color:black;border:none;padding:1rem;border-radius:8px;font-weight:700;cursor:pointer;font-size:1rem;">Salvar Filtro</button>
+                            <button id="btn-salvar-filtro"
+                                style="width:100%;background:var(--primary);color:black;border:none;padding:1rem;border-radius:8px;font-weight:700;cursor:pointer;font-size:1rem;">Salvar
+                                Filtro</button>
                         </div>
                     </div>
                 </div>
@@ -1899,13 +2057,18 @@
                     <div class="card">
                         <h2 style="margin-bottom: 0.5rem;"><i data-lucide="users"></i> Adicionar Equipe
                             <div style="position: relative; margin-left: auto;">
-                                <button type="button" id="btn-draft-menu" class="draft-dropdown-toggle" title="Ações do Draft"><i data-lucide="folder"></i></button>
+                                <button type="button" id="btn-draft-menu" class="draft-dropdown-toggle"
+                                    title="Ações do Draft"><i data-lucide="folder"></i></button>
                                 <div id="draft-dropdown" class="draft-dropdown">
-                                    <button type="button" id="btn-draft-store-firebase"><i data-lucide="cloud-upload" style="width:16px;"></i> Armazenar com Firebase</button>
-                                    <button type="button" id="btn-draft-sync-firebase"><i data-lucide="cloud-download" style="width:16px;"></i> Sincronizar com Firebase</button>
+                                    <button type="button" id="btn-draft-store-firebase"><i data-lucide="cloud-upload"
+                                            style="width:16px;"></i> Armazenar com Firebase</button>
+                                    <button type="button" id="btn-draft-sync-firebase"><i data-lucide="cloud-download"
+                                            style="width:16px;"></i> Sincronizar com Firebase</button>
                                     <hr>
-                                    <button type="button" id="btn-draft-export"><i data-lucide="file-down" style="width:16px;"></i> Export Draft</button>
-                                    <button type="button" id="btn-draft-import"><i data-lucide="file-up" style="width:16px;"></i> Import Draft</button>
+                                    <button type="button" id="btn-draft-export"><i data-lucide="file-down"
+                                            style="width:16px;"></i> Export Draft</button>
+                                    <button type="button" id="btn-draft-import"><i data-lucide="file-up"
+                                            style="width:16px;"></i> Import Draft</button>
                                 </div>
                             </div>
                         </h2>
@@ -2006,6 +2169,37 @@
 
     <!--
       ============================================================
+      MODAL DE PRÉ-VISUALIZAÇÃO DO CHAVEAMENTO
+      Abre ao clicar em "Exportar Chaves". Permite ajustar zoom,
+      arrastar e exportar como JPG ou PDF.
+      ============================================================
+    -->
+    <div id="preview-bracket-modal" class="preview-bracket-overlay hidden">
+        <div class="preview-bracket-modal">
+            <div class="preview-header">
+                <h3><i data-lucide="eye"></i> Pré-visualização do Chaveamento</h3>
+                <button id="btn-preview-close" class="preview-close-btn">&times;</button>
+            </div>
+            <div class="preview-viewport" id="preview-viewport">
+                <div class="preview-content" id="preview-content"></div>
+            </div>
+            <div class="preview-footer">
+                <div class="preview-zoom-controls">
+                    <button class="btn-zoom" id="btn-preview-zoom-out" title="Afastar (-)"><i data-lucide="zoom-out" style="width:18px;"></i></button>
+                    <span id="preview-zoom-label">100%</span>
+                    <button class="btn-zoom" id="btn-preview-zoom-in" title="Aproximar (+)"><i data-lucide="zoom-in" style="width:18px;"></i></button>
+                    <button class="btn-zoom" id="btn-preview-zoom-reset" title="Resetar zoom"><i data-lucide="maximize" style="width:18px;"></i></button>
+                </div>
+                <div class="preview-actions">
+                    <button id="btn-preview-jpg" class="btn-action" style="background:rgba(34,197,94,0.1);border-color:#22c55e;color:#22c55e;"><i data-lucide="image" style="width:18px;"></i> Baixar JPG</button>
+                    <button id="btn-preview-pdf" class="btn-action" style="background:rgba(59,130,246,0.1);border-color:#3b82f6;color:#3b82f6;"><i data-lucide="file-text" style="width:18px;"></i> Baixar PDF</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!--
+      ============================================================
       SCRIPT PRINCIPAL (ES Module)
       Importa Firebase, define dados dos modos, lógica de abas,
       renderização manual, roleta, draft, e comunicação com overlay.
@@ -2013,7 +2207,7 @@
     -->
     <script type="module">
         // Importa funções do Firebase (configurado em firebase-config.js)
-        import { db, ref, set, onValue, remove, get } from './firebase-config.js';
+        import { db, ref, set, onValue, remove, get, update } from './firebase-config.js';
 
         /*
           ==========================================================
@@ -2218,7 +2412,7 @@
                 modo_id: id,
                 modo_atual: nome,
                 imagem_url: 'assets/' + img,
-                status_exibicao: 'visivel',
+                status_exibicao: 'visível',
                 auto_ocultar_em: window.autoHideSeconds || null
             });
         };
@@ -3138,8 +3332,7 @@
                 </div>`;
             }
             html += `<div style="display: flex; justify-content: center; gap: 1rem; margin-top: 3rem; flex-wrap: wrap;">
-                <button id="btn-print-bracket" class="btn-action" style="max-width: 250px; background: rgba(59, 130, 246, 0.1); border: 1px dashed #3b82f6; color: #3b82f6; padding: 1rem; font-size: 1rem;" title="Imprimir somente as chaves"><i data-lucide="printer" style="width: 20px;"></i> Imprimir Chaves</button>
-                <button id="btn-export-jpg" class="btn-action" style="max-width: 250px; background: rgba(34, 197, 94, 0.1); border: 1px dashed #22c55e; color: #22c55e; padding: 1rem; font-size: 1rem;" title="Baixar como imagem JPG"><i data-lucide="image" style="width: 20px;"></i> Baixar JPG</button>
+                <button id="btn-export-bracket" class="btn-action" style="max-width: 250px; background: rgba(168, 85, 247, 0.1); border: 1px dashed #a855f7; color: #a855f7; padding: 1rem; font-size: 1rem;" title="Pré-visualizar e exportar chaves"><i data-lucide="eye" style="width: 20px;"></i> Exportar Chaves</button>
             </div>`;
 
             document.getElementById('bracket-content').innerHTML = html;
@@ -3182,14 +3375,9 @@
 
             document.getElementById('col-gf').innerHTML += generateMatchHTML('GF');
 
-            const printBtn = document.getElementById('btn-print-bracket');
-            if (printBtn) {
-                printBtn.onclick = () => window.print();
-            }
-
-            const jpgBtn = document.getElementById('btn-export-jpg');
-            if (jpgBtn) {
-                jpgBtn.onclick = () => exportarBracketJPG();
+            const exportBtn = document.getElementById('btn-export-bracket');
+            if (exportBtn) {
+                exportBtn.onclick = () => abrirPreviewBracket();
             }
 
             lucide.createIcons();
@@ -3449,7 +3637,7 @@
             const statusDot = document.getElementById('status-dot');
             const statusText = document.getElementById('status-text');
 
-            if (data && data.status_exibicao === 'visivel') {
+            if (data && data.status_exibicao === 'visível') {
                 statusDot.classList.add('active');
                 statusText.innerText = 'Overlay Visível';
                 // Encontra o modo correspondente no array e destaca
@@ -3462,10 +3650,10 @@
         });
 
         /*
-          Botão "Esconder": oculta o overlay enviando status='oculto'
+          Botão "Esconder": oculta o overlay enviando status_exibicao='oculto'
           para o Firebase (nó showcase).
         */
-        document.getElementById('btn-hide-global').onclick = () => set(ref(db, 'showcase'), { status_exibicao: 'oculto' });
+        document.getElementById('btn-hide-global').onclick = () => update(ref(db, 'showcase'), { status_exibicao: 'oculto' });
 
         /*
           ==========================================================
@@ -3716,25 +3904,141 @@
         };
 
         /*
-          exportarBracketJPG: captura o bracket com html2canvas
-          e baixa como imagem JPG.
+          exportarPreviewJPG: captura o preview-content com html2canvas
+          respeitando o zoom atual.
         */
-        function exportarBracketJPG() {
-            const el = document.querySelector('.bracket-wrapper');
-            if (!el) return;
-            html2canvas(el, {
-                scale: 2,
+        function exportarPreviewJPG() {
+            var content = document.getElementById('preview-content');
+            if (!content) return;
+
+            var zoom = Math.max(previewZoom, 0.4);
+            var origTransform = content.style.transform;
+            var origWidth = content.style.width;
+
+            content.style.transform = 'none';
+            content.style.width = '100%';
+
+            html2canvas(content, {
+                scale: Math.max(zoom * 1.5, 2),
                 useCORS: true,
                 backgroundColor: '#1a1a2e'
-            }).then(canvas => {
-                const link = document.createElement('a');
-                link.download = 'chaveamento_' + Date.now() + '.jpg';
+            }).then(function (canvas) {
+                content.style.transform = origTransform;
+                content.style.width = origWidth;
+                var link = document.createElement('a');
+                link.download = 'chaveamento_' + new Date().toISOString().slice(0, 10) + '.jpg';
                 link.href = canvas.toDataURL('image/jpeg', 0.95);
                 link.click();
-            }).catch(err => {
-                console.error('Erro ao gerar JPG:', err);
-                alert('Erro ao gerar a imagem.');
+            }).catch(function (err) {
+                content.style.transform = origTransform;
+                content.style.width = origWidth;
+                console.error('Erro ao exportar JPG:', err);
+                alert('Erro ao exportar imagem.');
             });
+        }
+
+        /*
+          exportarPreviewPDF: abre popup com o bracket para impressão,
+          usando DOM API (sem template literals ou document.write
+          com HTML interno).
+        */
+        function exportarPreviewPDF() {
+            var content = document.getElementById('preview-content');
+            if (!content) return;
+
+            var zoom = Math.max(previewZoom, 0.4);
+            var htmlContent = content.innerHTML;
+
+            var w = window.open('', '_blank', 'width=1200,height=800');
+            if (!w) { alert('Popup bloqueado. Permita popups para imprimir.'); return; }
+
+            var doc = w.document;
+            doc.open();
+
+            var html = doc.createElement('html');
+            var head = doc.createElement('head');
+            var meta = doc.createElement('meta');
+            meta.setAttribute('charset', 'UTF-8');
+            head.appendChild(meta);
+
+            var title = doc.createElement('title');
+            title.textContent = 'Chaveamento - MLBB Draft';
+            head.appendChild(title);
+
+            var style = doc.createElement('style');
+            style.textContent =
+                '*{box-sizing:border-box;margin:0;padding:0}' +
+                'body{font-family:Inter,Arial,sans-serif;background:#1a1a2e;color:#fafafa;padding:2rem;-webkit-print-color-adjust:exact;print-color-adjust:exact}' +
+                'h1{text-align:center;font-size:1.5rem;margin-bottom:2rem;color:#d4af37;font-family:Outfit,Arial,sans-serif}' +
+                '.bracket-print-container{display:flex;flex-direction:column;align-items:center;gap:1.5rem;transform-origin:top center;transform:scale(' + zoom + ')}' +
+                '.match-box{border:1px solid #27272a;border-radius:8px;width:220px;background:#09090b;box-shadow:0 4px 6px rgba(0,0,0,0.3);overflow:hidden;flex-shrink:0}' +
+                '.match-name{background:#27272a;font-size:0.75rem;padding:4px 8px;text-align:center;color:#a1a1aa;border-bottom:1px solid #27272a;font-weight:600;text-transform:uppercase}' +
+                '.team-slot{padding:0.75rem;font-weight:600;font-size:0.9rem;border-bottom:1px solid #27272a;display:flex;justify-content:space-between;align-items:center}' +
+                '.team-slot:last-child{border-bottom:none}' +
+                '.team-slot.winner{background:rgba(212,175,55,0.1);border-left:3px solid #d4af37}' +
+                '.section-title{color:white;margin-bottom:1.5rem;text-align:center;font-family:Outfit,Arial,sans-serif;letter-spacing:1px}' +
+                '.round-col{display:flex;flex-direction:column;gap:1rem}' +
+                '@media print{body{padding:0.5in}@page{margin:0.5in;size:landscape}}';
+            head.appendChild(style);
+
+            var body = doc.createElement('body');
+            var h1 = doc.createElement('h1');
+            h1.textContent = 'Chaveamento - MLBB Draft';
+            body.appendChild(h1);
+
+            var container = doc.createElement('div');
+            container.className = 'bracket-print-container';
+            container.innerHTML = htmlContent;
+            body.appendChild(container);
+
+            html.appendChild(head);
+            html.appendChild(body);
+            doc.appendChild(html);
+            doc.close();
+
+            setTimeout(function () { w.focus(); w.print(); }, 500);
+        }
+
+        /*
+          ==========================================================
+          SISTEMA DE PRÉ-VISUALIZAÇÃO DO BRACKET
+          Modal com viewport próprio, zoom, pan.
+          ==========================================================
+        */
+
+        let previewZoom = 1;
+        let previewDragging = false;
+        let previewStartX, previewStartY, previewScrollLeft, previewScrollTop;
+
+        function abrirPreviewBracket() {
+            const previewContent = document.getElementById('preview-content');
+            if (!previewContent) return;
+
+            const bracketHtml = document.getElementById('bracket-content').innerHTML;
+            previewContent.innerHTML = bracketHtml;
+
+            previewZoom = 1;
+            atualizarPreviewZoom();
+
+            const modal = document.getElementById('preview-bracket-modal');
+            modal.classList.remove('hidden');
+
+            const viewport = document.getElementById('preview-viewport');
+            viewport.scrollTo({ top: 0, left: 0 });
+
+            lucide.createIcons();
+        }
+
+        function fecharPreview() {
+            document.getElementById('preview-bracket-modal').classList.add('hidden');
+        }
+
+        function atualizarPreviewZoom() {
+            const content = document.getElementById('preview-content');
+            if (!content) return;
+            content.style.transform = 'scale(' + previewZoom + ')';
+            const label = document.getElementById('preview-zoom-label');
+            if (label) label.textContent = Math.round(previewZoom * 100) + '%';
         }
 
         /*
@@ -3896,6 +4200,52 @@
         document.getElementById('btn-draft-import').addEventListener('click', (e) => {
             e.stopPropagation();
             importDraftFromFile();
+        });
+
+        // Preview modal controls
+        document.getElementById('btn-preview-close').onclick = fecharPreview;
+
+        document.getElementById('btn-preview-zoom-in').onclick = function () {
+            previewZoom = Math.min(previewZoom + 0.15, 1.5);
+            atualizarPreviewZoom();
+        };
+        document.getElementById('btn-preview-zoom-out').onclick = function () {
+            previewZoom = Math.max(previewZoom - 0.15, 0.3);
+            atualizarPreviewZoom();
+        };
+        document.getElementById('btn-preview-zoom-reset').onclick = function () {
+            previewZoom = 1;
+            atualizarPreviewZoom();
+            document.getElementById('preview-viewport').scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+        };
+
+        document.getElementById('btn-preview-jpg').onclick = exportarPreviewJPG;
+        document.getElementById('btn-preview-pdf').onclick = exportarPreviewPDF;
+
+        document.getElementById('preview-bracket-modal').onclick = function (e) {
+            if (e.target === e.currentTarget) fecharPreview();
+        };
+
+        // Preview pan (drag to scroll)
+        var previewViewport = document.getElementById('preview-viewport');
+        previewViewport.addEventListener('mousedown', function (e) {
+            previewDragging = true;
+            previewStartX = e.pageX - previewViewport.offsetLeft;
+            previewStartY = e.pageY - previewViewport.offsetTop;
+            previewScrollLeft = previewViewport.scrollLeft;
+            previewScrollTop = previewViewport.scrollTop;
+        });
+        previewViewport.addEventListener('mouseleave', function () { previewDragging = false; });
+        previewViewport.addEventListener('mouseup', function () { previewDragging = false; });
+        previewViewport.addEventListener('mousemove', function (e) {
+            if (!previewDragging) return;
+            e.preventDefault();
+            var x = e.pageX - previewViewport.offsetLeft;
+            var y = e.pageY - previewViewport.offsetTop;
+            var walkX = (x - previewStartX) * 1.5;
+            var walkY = (y - previewStartY) * 1.5;
+            previewViewport.scrollLeft = previewScrollLeft - walkX;
+            previewViewport.scrollTop = previewScrollTop - walkY;
         });
 
         drawWheel();

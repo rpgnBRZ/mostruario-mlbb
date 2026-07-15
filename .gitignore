@@ -1,0 +1,23 @@
+# Firebase config (contém credenciais sensíveis)
+firebase-config.js
+public/firebase-config.js
+
+# Arquivos de ambiente
+.env
+.env.local
+.env.production
+
+# Node
+node_modules/
+
+# VS Code
+.vscode/
+
+# Sistema
+.DS_Store
+Thumbs.db
+
+# IDE
+*.swp
+*.swo
+*~

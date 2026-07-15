@@ -2,15 +2,20 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
 import { getDatabase, ref, set, onValue, remove, get, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
+// ============================================================
+// ATENÇÃO: Este é um arquivo de exemplo.
+// Para usar, copie para firebase-config.js e preencha com
+// suas credenciais reais do Firebase Console.
+// ============================================================
 const firebaseConfig = {
-    apiKey: "AIzaSyB18hRvdb-WJl5V9L7LOj_SfA1TkFZb5VA",
-    authDomain: "mlbb-showcasezlc.firebaseapp.com",
-    databaseURL: "https://mlbb-showcasezlc-default-rtdb.firebaseio.com",
-    projectId: "mlbb-showcasezlc",
-    storageBucket: "mlbb-showcasezlc.firebasestorage.app",
-    messagingSenderId: "396583772958",
-    appId: "1:396583772958:web:1870a5a654ce9013ab9f0f",
-    measurementId: "G-KHHXSPH534"
+    apiKey: "",
+    authDomain: "",
+    databaseURL: "",
+    projectId: "",
+    storageBucket: "",
+    messagingSenderId: "",
+    appId: "",
+    measurementId: ""
 };
 
 const app = initializeApp(firebaseConfig);

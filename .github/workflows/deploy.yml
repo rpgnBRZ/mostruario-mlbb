@@ -1,0 +1,61 @@
+name: Deploy para GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Gerar firebase-config.js com secrets
+        run: |
+          cat > public/firebase-config.js << 'EOF'
+          import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+          import { getDatabase, ref, set, onValue, remove, get, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+          import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+          const firebaseConfig = {
+              apiKey: "${{ secrets.FB_API_KEY }}",
+              authDomain: "${{ secrets.FB_AUTH_DOMAIN }}",
+              databaseURL: "${{ secrets.FB_DATABASE_URL }}",
+              projectId: "${{ secrets.FB_PROJECT_ID }}",
+              storageBucket: "${{ secrets.FB_STORAGE_BUCKET }}",
+              messagingSenderId: "${{ secrets.FB_MESSAGING_SENDER_ID }}",
+              appId: "${{ secrets.FB_APP_ID }}",
+              measurementId: "${{ secrets.FB_MEASUREMENT_ID }}"
+          };
+
+          const app = initializeApp(firebaseConfig);
+          const db = getDatabase(app);
+          const auth = getAuth(app);
+
+          export { db, auth, ref, set, onValue, remove, get, update, signInWithEmailAndPassword, onAuthStateChanged, signOut, signInAnonymously };
+          EOF
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,6 +1,0 @@
-# Firebase config (contém credenciais sensíveis - NÃO COMMITAR)
-firebase-config.js
-
-# Sistema
-.DS_Store
-Thumbs.db

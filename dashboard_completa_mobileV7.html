@@ -2714,9 +2714,8 @@
             set(ref(db, 'showcase'), {
                 modo_id: id,
                 modo_atual: nome,
-                imagem_url,
+                imagem_url: 'assets/' + img,
                 status_exibicao: 'visivel',
-                timestamp: Date.now(),
                 auto_ocultar_em: window.autoHideSeconds || null
             });
         };

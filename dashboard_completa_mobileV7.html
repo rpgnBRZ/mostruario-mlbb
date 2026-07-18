@@ -2095,7 +2095,7 @@
                             <option value="Especiais">Especiais</option>
                             <option value="Classes">Classes</option>
                             <option value="Lanes">Lanes</option>
-                            <option value="Proibições">Proibições</option>
+                            <option value="Feitiços">Feitiços</option>
                             <option value="Custom">Customizados</option>
                         </select>
                     </div>
@@ -2482,20 +2482,32 @@
             { id: 'lane-xp', nome: 'Lane XP', cat: 'Lanes', color: '#f87171', img: 'APENAS_UNICO(A)-lane_xp.jpeg', icon: 'swords' },
 
             /*
-              Categoria: Proibições
-              Impedem o uso de certos feitiços, lanes ou mecânicas.
+              Categoria: Feitiços
+              Impedem o uso de certos feitiços / apenas um feitiço permitido.
             */
-            { id: 'proibido-executar', nome: 'Proibido Executar', cat: 'Proibições', color: '#ef4444', img: 'EU_PROIBO-feitiço-executar.jpeg', icon: 'ban' },
-            { id: 'proibido-petrificar', nome: 'Proibido Petrificar', cat: 'Proibições', color: '#ef4444', img: 'EU_PROIBO-feitiço-petrificar.jpeg', icon: 'ban' },
-            { id: 'proibido-smite', nome: 'Proibido Smite', cat: 'Proibições', color: '#ef4444', img: 'EU_PROIBO-feitiço-smite.jpeg', icon: 'ban' },
-            { id: 'proibido-flash', nome: 'Proibido Flash', cat: 'Proibições', color: '#ef4444', img: 'EU_PROIBO-feito-flash.jpeg', icon: 'ban' },
+            { id: 'proibido-executar', nome: 'Proibido Executar', cat: 'Feitiços', color: '#ef4444', img: 'EU_PROIBO-feitiço-executar.jpeg', icon: 'ban' },
+            { id: 'proibido-petrificar', nome: 'Proibido Petrificar', cat: 'Feitiços', color: '#ef4444', img: 'EU_PROIBO-feitiço-petrificar.jpeg', icon: 'ban' },
+            { id: 'proibido-smite', nome: 'Proibido Smite', cat: 'Feitiços', color: '#ef4444', img: 'EU_PROIBO-feitiço-smite.jpeg', icon: 'ban' },
+            { id: 'proibido-flash', nome: 'Proibido Flash', cat: 'Feitiços', color: '#ef4444', img: 'EU_PROIBO-feito-flash.jpeg', icon: 'ban' },
+            { id: 'feitico-vinganca', nome: 'Apenas Vingança', cat: 'Feitiços', color: '#0a1a4a', img: 'APENAS_UNICO(A) - Feitico Unico Apenas Vingaca.jpg', icon: 'zap' },
+            { id: 'feitico-inspirar', nome: 'Apenas Inspirar', cat: 'Feitiços', color: '#c47a00', img: 'APENAS_UNICO(A) - Feitico Unico Apenas Inspirar.jpg', icon: 'zap' },
+            { id: 'feitico-tiro-flamejante', nome: 'Apenas Tiro Flamejante', cat: 'Feitiços', color: '#cc3300', img: 'APENAS_UNICO(A) - Feitico Unico Apenas Tiro Flamejante.jpg', icon: 'zap' },
+            { id: 'feitico-avancar', nome: 'Apenas Avançar', cat: 'Feitiços', color: '#0d47a1', img: 'APENAS_UNICO(A) - Feitico Unico Apenas Avancar.jpg', icon: 'zap' },
+            { id: 'feitico-cacar', nome: 'Apenas Caçar', cat: 'Feitiços', color: '#b71c1c', img: 'APENAS_UNICO(A) - Feitico Unico Apenas Cacar.jpg', icon: 'zap' },
+            { id: 'feitico-executar', nome: 'Apenas Executar', cat: 'Feitiços', color: '#c62828', img: 'APENAS_UNICO(A) - Feitico Unico Apenas Executar.jpg', icon: 'zap' },
+            { id: 'feitico-flash', nome: 'Apenas Flash', cat: 'Feitiços', color: '#ccaa00', img: 'APENAS_UNICO(A) - Feitico Unico Apenas Flash.jpg', icon: 'zap' },
+            { id: 'feitico-petrificar', nome: 'Apenas Petrificar', cat: 'Feitiços', color: '#00838f', img: 'APENAS_UNICO(A) - Feitico Unico Apenas Petrificar.jpg', icon: 'zap' },
+            { id: 'feitico-purificar', nome: 'Apenas Purificar', cat: 'Feitiços', color: '#388e3c', img: 'APENAS_UNICO(A) - Feitico Unico Apenas Purificar.jpg', icon: 'zap' },
+            { id: 'feitico-revitalizar', nome: 'Apenas Revitalizar', cat: 'Feitiços', color: '#00c853', img: 'APENAS_UNICO(A) - Feitico Unico Apenas Revitalizar.jpg', icon: 'zap' },
+            { id: 'feitico-tp', nome: 'Apenas TP', cat: 'Feitiços', color: '#7b1fa2', img: 'APENAS_UNICO(A) - Feitico Unico Apenas Tp.jpg', icon: 'zap' },
             { id: 'mid-bloqueada', nome: 'Mid Bloqueada', cat: 'Lanes', color: '#4b5563', img: 'EU_PROIBO-lane_mid_bloqueada.jpeg', icon: 'lock' },
             { id: 'ouro-bloqueada', nome: 'Ouro Bloqueada', cat: 'Lanes', color: '#4b5563', img: 'EU_PROIBO-lane_ouro.jpeg', icon: 'lock' },
             { id: 'xp-bloqueada', nome: 'XP Bloqueada', cat: 'Lanes', color: '#4b5563', img: 'EU_PROIBO-lane_xp.jpeg', icon: 'lock' },
-            { id: 'lord-proibido', nome: 'Lord Proibido', cat: 'Proibições', color: '#7c2d12', img: 'EU_PROIBO-lord.jpeg', icon: 'skull' },
-            { id: 'suportes-banidos', nome: 'Suportes Banidos', cat: 'Proibições', color: '#991b1b', img: 'EU_PROIBO-suportes_banidos.jpeg', icon: 'user-minus' },
-            { id: 'tanks-banidos', nome: 'Tanks Banidos', cat: 'Proibições', color: '#991b1b', img: 'EU_PROIBO-tanks_banidos.jpeg', icon: 'user-minus' },
-            { id: 'sem-comunicacao', nome: 'Sem Comunicação', cat: 'Proibições', color: '#ef4444', img: 'EU_PROIBO-comunicação.jpeg', icon: 'mic-off' }
+            { id: 'lord-proibido', nome: 'Lord Proibido', cat: 'Especiais', color: '#7c2d12', img: 'EU_PROIBO-lord.jpeg', icon: 'skull' },
+            { id: 'suportes-banidos', nome: 'Suportes Banidos', cat: 'Lanes', color: '#991b1b', img: 'EU_PROIBO-suportes_banidos.jpeg', icon: 'user-minus' },
+            { id: 'tanks-banidos', nome: 'Tanks Banidos', cat: 'Lanes', color: '#991b1b', img: 'EU_PROIBO-tanks_banidos.jpeg', icon: 'user-minus' },
+            { id: 'sem-comunicacao', nome: 'Sem Comunicação', cat: 'Especiais', color: '#ef4444', img: 'EU_PROIBO-comunicação.jpeg', icon: 'mic-off' },
+            { id: 'dano-contrario', nome: 'Dano Contrário', cat: 'Especiais', color: '#4a148c', img: 'Carta Especial - Dano Contrario.jpg', icon: 'shuffle' }
         ];
 
         /*
@@ -2516,7 +2528,7 @@
           Mapa de ícones Lucide para cada categoria.
           Usado no título dos cartões da seleção manual.
         */
-        const catIcons = { 'Especiais': 'star', 'Classes': 'swords', 'Lanes': 'map', 'Proibições': 'shield-alert', 'Custom': 'layers' };
+        const catIcons = { 'Especiais': 'star', 'Classes': 'swords', 'Lanes': 'map', 'Feitiços': 'shield-alert', 'Custom': 'layers' };
 
         /*
           activeRoletaModos: modos atualmente selecionados para aparecer na roleta.
@@ -3724,7 +3736,7 @@
             if (!container) return;
             container.innerHTML = '';
 
-            const cats = ['Classes', 'Lanes', 'Especiais', 'Proibições', 'Custom'];
+            const cats = ['Classes', 'Lanes', 'Especiais', 'Feitiços', 'Custom'];
             cats.forEach(cat => {
                 const modos = fullModosData.filter(m => m.cat === cat && !EXCLUDED_MODOS.includes(m.id));
                 if (modos.length === 0) return;

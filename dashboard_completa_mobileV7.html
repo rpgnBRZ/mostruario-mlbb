@@ -1192,9 +1192,11 @@
             justify-content: center;
             z-index: 2000;
         }
+
         .preview-bracket-overlay.hidden {
             display: none;
         }
+
         .preview-bracket-modal {
             background: var(--surface);
             border: 1px solid var(--border);
@@ -1207,6 +1209,7 @@
             overflow: hidden;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
         }
+
         .preview-header {
             display: flex;
             align-items: center;
@@ -1215,6 +1218,7 @@
             border-bottom: 1px solid var(--border);
             flex-shrink: 0;
         }
+
         .preview-header h3 {
             font-family: 'Outfit', sans-serif;
             font-size: 1.2rem;
@@ -1223,6 +1227,7 @@
             align-items: center;
             gap: 0.5rem;
         }
+
         .preview-close-btn {
             background: none;
             border: none;
@@ -1233,9 +1238,11 @@
             padding: 0.25rem;
             transition: color 0.2s;
         }
+
         .preview-close-btn:hover {
             color: var(--foreground);
         }
+
         .preview-viewport {
             flex: 1;
             overflow: auto;
@@ -1245,22 +1252,27 @@
             min-height: 400px;
             position: relative;
         }
+
         .preview-viewport:active {
             cursor: grabbing;
         }
+
         .preview-viewport::-webkit-scrollbar {
             height: 8px;
             width: 8px;
         }
+
         .preview-viewport::-webkit-scrollbar-thumb {
             background: var(--border);
             border-radius: 4px;
         }
+
         .preview-content {
             transform-origin: top left;
             transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
             min-width: 800px;
         }
+
         .preview-footer {
             display: flex;
             align-items: center;
@@ -1271,11 +1283,13 @@
             flex-wrap: wrap;
             gap: 0.75rem;
         }
+
         .preview-zoom-controls {
             display: flex;
             align-items: center;
             gap: 0.4rem;
         }
+
         .preview-zoom-controls .btn-zoom {
             background: var(--background);
             color: var(--foreground);
@@ -1286,20 +1300,24 @@
             font-size: 0.85rem;
             transition: 0.2s;
         }
+
         .preview-zoom-controls .btn-zoom:hover {
             background: var(--surface-hover);
             color: var(--primary);
         }
+
         #preview-zoom-label {
             font-size: 0.8rem;
             color: var(--muted-foreground);
             min-width: 40px;
             text-align: center;
         }
+
         .preview-actions {
             display: flex;
             gap: 0.75rem;
         }
+
         .preview-actions .btn-action {
             padding: 0.6rem 1.2rem;
             border-radius: 8px;
@@ -1313,6 +1331,7 @@
             gap: 0.4rem;
             background: none;
         }
+
         .preview-actions .btn-action:hover {
             filter: brightness(1.2);
         }
@@ -1787,14 +1806,20 @@
                 transform-origin: top left !important;
             }
         }
-        .hidden { display: none !important; }
+
+        .hidden {
+            display: none !important;
+        }
 
         /* ============================================================
            LOGIN SCREEN
            ============================================================ */
         #login-overlay {
             position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
             background: var(--background);
             display: flex;
             align-items: center;
@@ -1802,10 +1827,12 @@
             z-index: 9999;
             transition: opacity 0.4s ease;
         }
+
         #login-overlay.hidden {
             opacity: 0;
             pointer-events: none;
         }
+
         .login-box {
             background: var(--surface);
             border: 1px solid var(--border);
@@ -1814,34 +1841,40 @@
             width: 360px;
             max-width: 90vw;
         }
+
         .login-box .brand {
             justify-content: center;
             margin-bottom: 1.5rem;
         }
+
         .login-box h2 {
             font-family: 'Outfit', sans-serif;
             text-align: center;
             color: var(--primary);
             margin-bottom: 0.25rem;
         }
+
         .login-box p.sub {
             text-align: center;
             color: var(--muted-foreground);
             font-size: 0.85rem;
             margin-bottom: 1.5rem;
         }
+
         .login-field {
             display: flex;
             flex-direction: column;
             gap: 0.35rem;
             margin-bottom: 1rem;
         }
+
         .login-field label {
             font-size: 0.8rem;
             color: var(--muted-foreground);
             text-transform: uppercase;
             letter-spacing: 0.05em;
         }
+
         .login-field input {
             background: var(--background);
             border: 1px solid var(--border);
@@ -1852,9 +1885,11 @@
             outline: none;
             transition: border-color 0.2s;
         }
+
         .login-field input:focus {
             border-color: var(--primary);
         }
+
         .login-btn {
             width: 100%;
             padding: 0.8rem;
@@ -1868,13 +1903,16 @@
             margin-top: 0.5rem;
             transition: background 0.2s;
         }
+
         .login-btn:hover {
             background: var(--primary-hover);
         }
+
         .login-btn:disabled {
             opacity: 0.5;
             cursor: not-allowed;
         }
+
         .login-error {
             color: var(--danger);
             font-size: 0.85rem;
@@ -1882,12 +1920,14 @@
             margin-top: 0.75rem;
             min-height: 1.2em;
         }
+
         .login-loading {
             text-align: center;
             color: var(--muted-foreground);
             font-size: 0.9rem;
             padding: 2rem 0;
         }
+
         .user-section {
             border-top: 1px solid var(--border);
             padding-top: 1rem;
@@ -1895,6 +1935,7 @@
             align-items: center;
             gap: 0.5rem;
         }
+
         .user-section .user-email {
             font-size: 0.75rem;
             color: var(--muted-foreground);
@@ -1903,6 +1944,7 @@
             text-overflow: ellipsis;
             white-space: nowrap;
         }
+
         .user-section .logout-btn {
             background: none;
             border: 1px solid var(--border);
@@ -1913,6 +1955,7 @@
             font-size: 0.75rem;
             transition: all 0.2s;
         }
+
         .user-section .logout-btn:hover {
             border-color: var(--danger);
             color: var(--danger);
@@ -2353,14 +2396,21 @@
             </div>
             <div class="preview-footer">
                 <div class="preview-zoom-controls">
-                    <button class="btn-zoom" id="btn-preview-zoom-out" title="Afastar (-)"><i data-lucide="zoom-out" style="width:18px;"></i></button>
+                    <button class="btn-zoom" id="btn-preview-zoom-out" title="Afastar (-)"><i data-lucide="zoom-out"
+                            style="width:18px;"></i></button>
                     <span id="preview-zoom-label">100%</span>
-                    <button class="btn-zoom" id="btn-preview-zoom-in" title="Aproximar (+)"><i data-lucide="zoom-in" style="width:18px;"></i></button>
-                    <button class="btn-zoom" id="btn-preview-zoom-reset" title="Resetar zoom"><i data-lucide="maximize" style="width:18px;"></i></button>
+                    <button class="btn-zoom" id="btn-preview-zoom-in" title="Aproximar (+)"><i data-lucide="zoom-in"
+                            style="width:18px;"></i></button>
+                    <button class="btn-zoom" id="btn-preview-zoom-reset" title="Resetar zoom"><i data-lucide="maximize"
+                            style="width:18px;"></i></button>
                 </div>
                 <div class="preview-actions">
-                    <button id="btn-preview-jpg" class="btn-action" style="background:rgba(34,197,94,0.1);border-color:#22c55e;color:#22c55e;"><i data-lucide="image" style="width:18px;"></i> Baixar JPG</button>
-                    <button id="btn-preview-pdf" class="btn-action" style="background:rgba(59,130,246,0.1);border-color:#3b82f6;color:#3b82f6;"><i data-lucide="file-text" style="width:18px;"></i> Baixar PDF</button>
+                    <button id="btn-preview-jpg" class="btn-action"
+                        style="background:rgba(34,197,94,0.1);border-color:#22c55e;color:#22c55e;"><i
+                            data-lucide="image" style="width:18px;"></i> Baixar JPG</button>
+                    <button id="btn-preview-pdf" class="btn-action"
+                        style="background:rgba(59,130,246,0.1);border-color:#3b82f6;color:#3b82f6;"><i
+                            data-lucide="file-text" style="width:18px;"></i> Baixar PDF</button>
                 </div>
             </div>
         </div>
@@ -2662,7 +2712,8 @@
                 modo_id: id,
                 modo_atual: nome,
                 imagem_url: 'assets/' + img,
-                status_exibicao: 'visível',
+                status_exibicao: 'visivel',
+                timestamp: Date.now(),
                 auto_ocultar_em: window.autoHideSeconds || null
             });
         };
@@ -3887,7 +3938,7 @@
             const statusDot = document.getElementById('status-dot');
             const statusText = document.getElementById('status-text');
 
-            if (data && data.status_exibicao === 'visível') {
+            if (data && data.status_exibicao === 'visivel') {
                 statusDot.classList.add('active');
                 statusText.innerText = 'Overlay Visível';
                 // Encontra o modo correspondente no array e destaca

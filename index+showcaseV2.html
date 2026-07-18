@@ -167,12 +167,7 @@
     </div>
 
     <script type="module">
-        import { db, auth, ref, set, onValue, signInAnonymously } from './firebase-config.js';
-
-        // Autenticação anônima para respeitar as regras de segurança do Firebase
-        signInAnonymously(auth).catch((err) => {
-            console.warn('Auth anônima falhou (o overlay pode não conseguir escrever no banco):', err.message);
-        });
+        import { db, ref, set, onValue } from './firebase-config.js';
 
         const canvas = document.getElementById('wheel-canvas');
         const ctx = canvas.getContext('2d');

@@ -283,7 +283,9 @@
 
         function revealWinner(winner) {
             // Suporte para cartas customizadas: detecta se é URL completa ou caminho local
-            const imgPath = 'assets/' + winner.img;
+            const imgPath = winner.img.startsWith('http') ? winner.img :
+                winner.img.startsWith('assets/') ? winner.img :
+                'assets/' + winner.img;
             resultCard.style.backgroundImage = `url('${imgPath}')`;
             
             // Mostrar carta

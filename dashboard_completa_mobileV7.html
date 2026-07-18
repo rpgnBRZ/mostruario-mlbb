@@ -2708,10 +2708,13 @@
           ==========================================================
         */
         window.selectCard = function (id, nome, img) {
+            const imagem_url = img.startsWith('http') ? img :
+                img.startsWith('assets/') ? img :
+                'assets/' + img;
             set(ref(db, 'showcase'), {
                 modo_id: id,
                 modo_atual: nome,
-                imagem_url: 'assets/' + img,
+                imagem_url,
                 status_exibicao: 'visivel',
                 timestamp: Date.now(),
                 auto_ocultar_em: window.autoHideSeconds || null

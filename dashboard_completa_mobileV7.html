@@ -1736,6 +1736,48 @@
             .bracket-viewport {
                 padding: 1rem;
             }
+
+            /*
+              User-section adaptada para a barra inferior:
+              Oculta o email, transforma "Sair" em botão compacto.
+            */
+            .user-section {
+                border-top: none;
+                padding-top: 0;
+                gap: 0;
+                flex: 1;
+            }
+
+            .user-section .user-email {
+                display: none;
+            }
+
+            .user-section .logout-btn {
+                padding: 0.5rem 0.25rem;
+                font-size: 0.65rem;
+                font-weight: 600;
+                flex-direction: column;
+                gap: 0.4rem;
+                border: none;
+                width: 100%;
+                height: 100%;
+                background: transparent;
+                justify-content: center;
+                align-items: center;
+                line-height: 1.1;
+                white-space: normal;
+            }
+
+            .user-section .logout-btn:hover {
+                background: rgba(239, 68, 68, 0.1);
+                color: var(--danger);
+            }
+
+            .user-section .logout-btn i {
+                width: 20px;
+                height: 20px;
+                margin: 0 auto;
+            }
         }
 
         /*
@@ -1954,6 +1996,14 @@
             cursor: pointer;
             font-size: 0.75rem;
             transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .user-section .logout-btn i {
+            width: 16px;
+            height: 16px;
         }
 
         .user-section .logout-btn:hover {
@@ -2065,7 +2115,7 @@
 
         <div class="user-section" id="user-section" style="display:none;">
             <span class="user-email" id="user-email-display"></span>
-            <button class="logout-btn" id="logout-btn">Sair</button>
+            <button class="logout-btn" id="logout-btn"><i data-lucide="log-out"></i> Sair</button>
         </div>
     </aside>
 
